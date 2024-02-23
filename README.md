@@ -2,7 +2,7 @@ Overall design repo structure:
 - TMR
 - StopTheWorld
    - Design files & tbs
--FSMApproach
+- FSMApproach
    - Files for FSM Design Approach
 - ControlPath
    - Matrix multiplication FSMs for WS/OS
