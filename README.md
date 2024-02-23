@@ -2,6 +2,8 @@ Overall design repo structure:
 - TMR
 - StopTheWorld
    - Design files & tbs
+-FSMApproach
+   - Files for FSM Design Approach
 - ControlPath
    - Matrix multiplication FSMs for WS/OS
    - matmul_output_control: FSM for reading outputs into registers for checking
