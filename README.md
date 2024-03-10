@@ -5,8 +5,9 @@ Overall design repo structure:
 - FSMApproach
    - Files for FSM Design Approach
 - ControlPath
-   - Matrix multiplication FSMs for WS/OS
+   - systolic_matmul_fsm(WS)/systolic_matmul_fsm_OS: Matrix multiplication FSMs for WS/OS
    - matmul_output_control: FSM for reading outputs into registers for checking
+   - workflow_control: Top-level schematic instantiated matmul_output_control & systolic_matmul_fsm_OS/WS. Workflow selection(WS/OS) be chosen in header file
    - Corresponding tbs
 - FaultInjection
    - Version of MAC & systolic modified for fault injection: Modules for other approaches build on these
