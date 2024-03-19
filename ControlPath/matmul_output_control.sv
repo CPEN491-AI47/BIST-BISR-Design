@@ -6,6 +6,8 @@
 //Ex: Clk 1: Col 0 output[1] --> maintained for 2 clks (until clk 3)
 //    Clk 2: Col 1 output[1]
 //    Clk 3: Col 2 output[1] + Col 0 output[2]
+
+//*Update: Modified as to be compatible with OS_Workflow(setup in header file)
 module matmul_output_control
 #(
     parameter WORD_SIZE = 16
@@ -50,19 +52,21 @@ module matmul_output_control
     genvar c1;
     generate
         for(c1 = 0; c1 < `COLS; c1++) begin
-            `ifdef WS_WORKFLOW
+            `ifdef OS_WORKFLOW
+            //output matrix contrl for output-stationary workflow 
+                always_ff @(posedge clk) begin
+                    if(matmul_output_valid[c1]) begin
+                        write_count[c1] <= write_count[c1]+1;
+                        output_matrix[`COLS-write_count[c1]-1][c1] <= matmul_fsm_output[(c1) * WORD_SIZE +: WORD_SIZE];
+                    end
+                end
+            `else
+            //output matrix contrl for weight-stationary workflow 
             //output_matrix[rows][c1] "clocked" by wr_en[c1]
                 always_ff @(posedge wr_en[c1]) begin
                     if(matmul_output_valid[c1]) begin
                         write_count[c1] <= write_count[c1]+1;   //Tracks what row of output_matrix we are writing to for col c1
                         output_matrix[write_count[c1]][c1] <= matmul_fsm_output[c1 * WORD_SIZE +: WORD_SIZE];
-                    end
-                end
-            `else
-                always_ff @(posedge clk) begin
-                    if(matmul_output_valid[c1]) begin
-                        write_count[c1] <= write_count[c1]+1;
-                        output_matrix[c1][`COLS-write_count[c1]-1] <= matmul_fsm_output[(c1) * WORD_SIZE +: WORD_SIZE];
                     end
                 end
             `endif 

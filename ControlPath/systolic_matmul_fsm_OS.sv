@@ -68,8 +68,8 @@ module systolic_matmul_fsm_OS
                 waitmul <= 1;
 
                 //Initilizaing left & top in bus
-                curr_cycle_left_in <= left_matrix[ `WORD_SIZE -1 -: `WORD_SIZE];
-                curr_cycle_top_in <= top_matrix[ `WORD_SIZE -1 -: `WORD_SIZE];
+                curr_cycle_top_in <= left_matrix[ `WORD_SIZE -1 -: `WORD_SIZE];
+                curr_cycle_left_in <= top_matrix[ `WORD_SIZE -1 -: `WORD_SIZE];
                 
                 state <= FEED_INPUT_BUSES;
             end
@@ -80,14 +80,13 @@ module systolic_matmul_fsm_OS
                     n_cycle <= n_cycle + 1;
                     for(integer N_count = 0; N_count <`ROWS; N_count++)begin
                         if(n_cycle >= N_count && (n_cycle - N_count) < `ROWS)begin
-                            curr_cycle_left_in[(1+N_count) * `WORD_SIZE -1 -: `WORD_SIZE] <= left_matrix[((n_cycle * `ROWS + 1 - N_count * (`ROWS - 1)) * `WORD_SIZE) -1 -: `WORD_SIZE];
-                            curr_cycle_top_in[(N_count+1) * `WORD_SIZE -1 -: `WORD_SIZE] <= top_matrix[((n_cycle + 1 + (`ROWS - 1) * N_count) * `WORD_SIZE) -1 -: `WORD_SIZE];
+                            curr_cycle_top_in[(1+N_count) * `WORD_SIZE -1 -: `WORD_SIZE] <= left_matrix[((n_cycle * `ROWS + 1 - N_count * (`ROWS - 1)) * `WORD_SIZE) -1 -: `WORD_SIZE];
+                            curr_cycle_left_in[(N_count+1) * `WORD_SIZE -1 -: `WORD_SIZE] <= top_matrix[((n_cycle + 1 + (`ROWS - 1) * N_count) * `WORD_SIZE) -1 -: `WORD_SIZE];
                         end
                         else begin
                             curr_cycle_top_in[(1+N_count) * `WORD_SIZE -1 -: `WORD_SIZE] <= `WORD_SIZE'd0; 
                             curr_cycle_left_in[(1+N_count) * `WORD_SIZE -1 -: `WORD_SIZE] <= `WORD_SIZE'd0; 
                         end 
-                
                     end
                     state <= FEED_INPUT_BUSES;
                 end 
@@ -111,13 +110,7 @@ module systolic_matmul_fsm_OS
                 output_col_valid <= {`COLS{1'b1}};
                 state <= OUTPUT; 
             end
-
-            //Wait 2 Clock cycle to propogate Multiplication results
-            // WAIT_PROPOGATE:begin
-            //     output_col_valid <= {`COLS{1'b0}};
-            //     state <= SET_OUTPUT_ENABLE;
-            // end 
-
+            
             //Outputs are coming up column-wise(output_col_valid set to all valid): 
             //Cycle 1: bottom=[A22, A21, A20]
             //Cycle 2: bottom=[A12, A11, A10]
