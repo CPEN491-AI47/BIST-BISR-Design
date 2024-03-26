@@ -63,7 +63,8 @@ module BISR_STW_systolic
         input STW_test_load_en;
         input STW_start;
         output STW_complete_out;
-        output wire [(ROWS*COLS)-1:0] STW_result_mat; //[COLS-1:0];
+        //output wire [(ROWS*COLS)-1:0] STW_result_mat; //[COLS-1:0];
+        output wire STW_result_mat[0:ROWS-1][0:COLS-1];
     `endif
 
     input [ROWS * COLS * WORD_SIZE - 1 : 0] top_matrix;

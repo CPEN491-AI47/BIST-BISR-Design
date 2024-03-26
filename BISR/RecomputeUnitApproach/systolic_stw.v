@@ -61,7 +61,8 @@ input ctl_dummy_fsm_out_select_in;
     input STW_test_load_en;
     input STW_start;
     output STW_complete_out;
-    output [(ROWS*COLS)-1:0] STW_result_mat; //[COLS-1:0];
+    //output [(ROWS*COLS)-1:0] STW_result_mat; //[COLS-1:0];
+    output STW_result_mat[0:ROWS-1][0:COLS-1];
     
     wire [(ROWS*COLS)-1:0] STW_complete;
     assign STW_complete_out = &STW_complete;
@@ -108,7 +109,8 @@ for(r = 0; r < ROWS; r = r+1) begin : mac_row_genblk
                     .STW_expected(STW_expected),
                     .STW_start(STW_start),
                     .STW_complete(STW_complete[(r*COLS)+c]),
-                    .STW_result_out(STW_result_mat[(r*COLS)+c]),
+                    //.STW_result_out(STW_result_mat[(r*COLS)+c]),
+                    .STW_result_out(STW_result_mat[0][0]),
                 `endif
                 .left_in(left_in_bus[(r+1) * WORD_SIZE -1 -: WORD_SIZE]),
                 .top_in(top_in_bus[(c+1) * WORD_SIZE - 1 -: WORD_SIZE]),
@@ -141,7 +143,8 @@ for(r = 0; r < ROWS; r = r+1) begin : mac_row_genblk
                     .STW_expected(STW_expected),
                     .STW_start(STW_start),
                     .STW_complete(STW_complete[(r*COLS)+c]),
-                    .STW_result_out(STW_result_mat[(r*COLS)+c]),
+                    //.STW_result_out(STW_result_mat[(r*COLS)+c]),
+                    .STW_result_out(STW_result_mat[r][0]),
                 `endif
                 .left_in(left_in_bus[(r+1) * WORD_SIZE -1 -: WORD_SIZE]),
                 .top_in(ver_interconnect[TOP_PEER_OFFSET -1 -: WORD_SIZE]),
@@ -173,7 +176,8 @@ for(r = 0; r < ROWS; r = r+1) begin : mac_row_genblk
                     .STW_expected(STW_expected),
                     .STW_start(STW_start),
                     .STW_complete(STW_complete[(r*COLS)+c]),
-                    .STW_result_out(STW_result_mat[(r*COLS)+c]),
+                    //.STW_result_out(STW_result_mat[(r*COLS)+c]),
+                    .STW_result_out(STW_result_mat[0][c]),
                 `endif
                 .left_in(hor_interconnect[LEFT_PEER_OFFSET - 1 -: WORD_SIZE]),
                 .top_in(top_in_bus[(c+1) * WORD_SIZE - 1 -: WORD_SIZE]),
@@ -206,7 +210,8 @@ for(r = 0; r < ROWS; r = r+1) begin : mac_row_genblk
                     .STW_expected(STW_expected),
                     .STW_start(STW_start),
                     .STW_complete(STW_complete[(r*COLS)+c]),
-                    .STW_result_out(STW_result_mat[(r*COLS)+c]),
+                    //.STW_result_out(STW_result_mat[(r*COLS)+c]),
+                    .STW_result_out(STW_result_mat[r][c]),
                 `endif
                 .left_in(hor_interconnect[LEFT_PEER_OFFSET - 1 -: WORD_SIZE]),
                 .top_in(ver_interconnect[TOP_PEER_OFFSET -1 -: WORD_SIZE]),
