@@ -1,6 +1,7 @@
 module priority_encoder
 #(
-    parameter INPUT_WIDTH = 4
+    parameter INPUT_WIDTH = 4,
+    parameter ENCODED_VAL = 0   //Encoder will return 1st idx n of data_in where n = ENCODED_VAL. Decides whether we are looking for 1st bit = 0 or first bit = 1
 ) (
     rst,
     data_in,
@@ -21,7 +22,7 @@ module priority_encoder
         end
         else begin
             for(i = 0; i < INPUT_WIDTH; i=i+1) begin   //Priority LSB
-                if(!data_in[i] && !break) begin   //Find idx of 1st ZERO
+                if((data_in[i] == ENCODED_VAL) && !break) begin   //Find idx of 1st ZERO
                     encoded_out = i;
                     break = 1'b1;
                 end

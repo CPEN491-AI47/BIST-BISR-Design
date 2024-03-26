@@ -1,5 +1,6 @@
 `define SET_PROXY 3'b0
 `define PROXY_COMPUTE 3'b01
+`define SET_PROXY2 3'b010
 
 //Control recomputing for 1 col
 module recompute_controller
@@ -27,7 +28,8 @@ module recompute_controller
     fault_detected,
     proxy_left_in,
     rcm_output,
-    rcm_weight
+    rcm_weight,
+    proxy_out_valid
 );
 
     localparam ROW_WIDTH = $clog2(ROWS);
@@ -52,6 +54,7 @@ module recompute_controller
     wire [ROW_WIDTH-1:0] priority_fault_idx;
     output reg [WORD_SIZE-1:0] rcm_weight;
     output reg [2:0] proxy_settings;   //From msb <- lsb: {stat_bit_in, fsm_out_select_in, fsm_op2_select_in}
+    output reg proxy_out_valid;
 
     //TODO: Try using onehot as index (may be less logic)
     priority_encoder #(
@@ -71,16 +74,17 @@ module recompute_controller
     output reg proxy_matmul;
     input [WORD_SIZE-1:0] rcm_left_in;
 
+    // assign proxy_out_valid = (proxy_left_in != 'b0);
 
     //Regs to keep timing of left_in & top_in
     always @(posedge clk) begin
         if(rst) begin
             proxy_left_in <= 'b0;
-            // proxy_top_in <= 'b0;
+            proxy_out_valid <= 'b0;
         end
         else begin
             proxy_left_in <= rcm_left_in;
-            // proxy_top_in <= rcm_in_top;
+            proxy_out_valid <= (proxy_left_in != 'b0);
         end
     end
 
@@ -101,14 +105,21 @@ module recompute_controller
                         proxy_settings <= {3'b001};   //For loading stationary: !fsm_out_select_in && fsm_op2_select_in
                         load_proxy <= 1'b1;
                         proxy_matmul <= 1'b0;
-                        rcm_state <= `PROXY_COMPUTE;
+                        rcm_state <= `SET_PROXY2;
                     end
                     else begin
                         load_proxy <= 1'b0;
+                        rcm_weight <= 'b0;
                         proxy_matmul <= 1'b0;
                         proxy_settings <= 3'b0;
                     end
                 end
+                `SET_PROXY2: begin
+                    rcm_weight <= rcm_in_weight;
+                    proxy_settings <= {3'b001};
+                    rcm_state <= `PROXY_COMPUTE;
+                end
+
                 `PROXY_COMPUTE: begin
                     rcm_weight <= 'b0;
                     proxy_matmul <= 1'b1;

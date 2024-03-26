@@ -34,6 +34,10 @@ module stw_wproxy_systolic
         STW_complete_out,
         STW_result_mat,
     `endif
+    `ifdef ENABLE_WPROXY
+        proxy_output_bus,
+        proxy_out_valid_bus,
+    `endif
     left_in_bus,
     top_in_bus,
     bottom_out_bus,
@@ -178,6 +182,11 @@ module stw_wproxy_systolic
 
     wire [2:0] col_proxy_settings [COLS-1:0];
 
+    output [COLS-1:0] proxy_out_valid_bus;
+    output [(COLS*WORD_SIZE)-1: 0] proxy_output_bus;
+
+    wire [(ROWS*WORD_SIZE)-1:0] pe_bottom_out [COLS-1:0];
+    wire [NUM_BITS_ROWS-1:0] proxy_idx [COLS-1:0];
     genvar r, c;
     generate
     for (r = 0; r < ROWS; r = r + 1) begin : right_out_genblk
@@ -186,7 +195,7 @@ module stw_wproxy_systolic
 
     for (c  = 0; c < COLS; c = c + 1) begin : bottom_out_genblk
 
-        assign bottom_out_bus[(c+1) * WORD_SIZE - 1 -: WORD_SIZE] = (fault_detected[c] && c == 1) ? (ver_interconnect[(ROWS * c + ROWS) * WORD_SIZE - 1 -: WORD_SIZE]): ver_interconnect[(ROWS * c + ROWS) * WORD_SIZE - 1 -: WORD_SIZE];
+        assign bottom_out_bus[(c+1) * WORD_SIZE - 1 -: WORD_SIZE] = ver_interconnect[(ROWS * c + ROWS) * WORD_SIZE - 1 -: WORD_SIZE];
     end
 
     for (c = 0; c < COLS; c = c+1) begin : rcm_genblk
@@ -208,6 +217,27 @@ module stw_wproxy_systolic
             .mux_out(rcm_left_in[c])
         );
 
+        priority_encoder #(
+            .INPUT_WIDTH(ROWS),
+            .ENCODED_VAL(1)
+        ) proxy_idx_encoder (
+            .rst(rst),
+            .data_in(proxy_map[c]),
+            .encoded_out(proxy_idx[c])
+        );
+
+        multiplexer_Nto1 #(
+            .NUM_INPUTS(ROWS),
+            .WORD_SIZE(WORD_SIZE)
+        ) rcm_output_mux (
+            .input_options_bus(pe_bottom_out[c]),
+            .out_sel(proxy_idx[c]),  //FIXME: Change to proper sel after modifying mux to sel by one-hot
+            // .out_sel(2'd3),   //FIXME: const val for testing
+            .mux_out(proxy_output_bus[(c*WORD_SIZE) +: WORD_SIZE])
+        );
+
+        wire [COLS-1:0] proxy_matmul_mode;
+        wire [COLS-1:0] proxy_setstationary_mode;
         recompute_controller #(
             .ROWS(ROWS),
             .COL_IDX(c),
@@ -215,8 +245,8 @@ module stw_wproxy_systolic
         ) rcm_ctrl (
             .clk(clk),
             .rst(rst),
-            .set_stationary_mode(),
-            .matmul_mode(),
+            .set_stationary_mode(proxy_setstationary_mode[c]),
+            .matmul_mode(proxy_matmul_mode[c]),
             .STW_complete(STW_complete_out),
             .STW_result_mat(STW_result_mat[(c*ROWS) +: ROWS]),   //STW results for this col
             .rcm_idx_sel(rcm_idx_sel[c]),   //Selects idx of weight & bottom_out
@@ -231,7 +261,8 @@ module stw_wproxy_systolic
             .fault_detected(fault_detected[c]),
             .proxy_left_in(),
             .rcm_output(),
-            .rcm_weight(rcm_top_in[c])
+            .rcm_weight(rcm_top_in[c]),
+            .proxy_out_valid(proxy_out_valid_bus[c])
         );
     end
     
@@ -246,21 +277,25 @@ module stw_wproxy_systolic
                 wire fsm_op2_select_in;
                 wire fsm_out_select_in;
                 wire stat_bit_in;
-                
-
-                
+                               
                 assign {stat_bit_in, fsm_out_select_in, fsm_op2_select_in} = (fault_detected[c] && proxy_map[c][r]) ? col_proxy_settings[c] : {ctl_stat_bit_in, ctl_dummy_fsm_out_select_in, ctl_dummy_fsm_op2_select_in};
                 
                 wire [WORD_SIZE-1:0] proxy_stalled_top_in;
-                wire [WORD_SIZE-1:0] pe_bottom_out;
+                // wire [WORD_SIZE-1:0] pe_bottom_out;
                 vDFF #(
                     .WORD_SIZE(WORD_SIZE)
                 ) proxy_bottom_out_ff (
                     .clk(clk && fault_detected[c] && proxy_map[c][r]),
-                    .D(top_in_bus[(c+1) * WORD_SIZE - 1 -: WORD_SIZE]),
-                    .Q(proxy_stalled_top_in)
+                    .D(ver_interconnect[TOP_PEER_OFFSET -1 -: WORD_SIZE]),
+                    .Q(proxy_stalled_top_in),
+                    .shift_en(1'b1)
                 );
-                assign ver_interconnect[VERTICAL_SIGNAL_OFFSET -1 -: WORD_SIZE] = ((fault_detected[c] && proxy_map[c][r])) ? proxy_stalled_top_in : pe_bottom_out;
+            
+                
+                assign ver_interconnect[VERTICAL_SIGNAL_OFFSET -1 -: WORD_SIZE] = ((fault_detected[c] && proxy_map[c][r])) ? proxy_stalled_top_in : pe_bottom_out[c][((r+1)*WORD_SIZE)-1 -: WORD_SIZE];
+
+                wire [WORD_SIZE-1:0] selected_bottom_out;
+                assign selected_bottom_out = ver_interconnect[VERTICAL_SIGNAL_OFFSET -1 -: WORD_SIZE];
 
                 wire [WORD_SIZE-1:0] proxy_stalled_left_in;
                 wire [WORD_SIZE-1:0] pe_right_out;
@@ -269,7 +304,8 @@ module stw_wproxy_systolic
                 ) proxy_right_out_ff (
                     .clk(clk && fault_detected[c] && proxy_map[c][r]),
                     .D(left_in_bus[(r+1) * WORD_SIZE -1 -: WORD_SIZE]),
-                    .Q(proxy_stalled_left_in)
+                    .Q(proxy_stalled_left_in),
+                    .shift_en(1'b0)
                 );
                 assign hor_interconnect[HORIZONTAL_SIGNAL_OFFSET -1 -: WORD_SIZE] = ((fault_detected[c] && proxy_map[c][r])) ? proxy_stalled_left_in : pe_right_out;
 
@@ -314,7 +350,7 @@ module stw_wproxy_systolic
                     .left_in(selected_left_in),
                     .top_in(selected_top_in),
                     .right_out(pe_right_out),
-                    .bottom_out(pe_bottom_out)
+                    .bottom_out(pe_bottom_out[c][((r+1)*WORD_SIZE)-1 -: WORD_SIZE])
                 );
 
 
@@ -341,18 +377,21 @@ module stw_wproxy_systolic
                 wire sel;
                 assign sel = fault_detected[c] && proxy_map[c][r];
 
-                wire [WORD_SIZE-1:0] pe_bottom_out;
-                // assign ver_interconnect[VERTICAL_SIGNAL_OFFSET -1 -: WORD_SIZE] = (fault_detected[c] && proxy_map[c][r]) ? 'b0 : pe_bottom_out;
+                // wire [WORD_SIZE-1:0] pe_bottom_out;
 
                 wire [WORD_SIZE-1:0] proxy_stalled_top_in;
                 vDFF #(
                     .WORD_SIZE(WORD_SIZE)
                 ) proxy_bottom_out_ff (
                     .clk(clk && fault_detected[c] && proxy_map[c][r]),
-                    .D(top_in_bus[(c+1) * WORD_SIZE - 1 -: WORD_SIZE]),
-                    .Q(proxy_stalled_top_in)
+                    .D(ver_interconnect[TOP_PEER_OFFSET -1 -: WORD_SIZE]),
+                    .Q(proxy_stalled_top_in),
+                    .shift_en(1'b1)
                 );
-                assign ver_interconnect[VERTICAL_SIGNAL_OFFSET -1 -: WORD_SIZE] = ((fault_detected[c] && proxy_map[c][r])) ? proxy_stalled_top_in : pe_bottom_out;
+                
+                assign ver_interconnect[VERTICAL_SIGNAL_OFFSET -1 -: WORD_SIZE] = ((fault_detected[c] && proxy_map[c][r])) ? proxy_stalled_top_in : pe_bottom_out[c][((r+1)*WORD_SIZE)-1 -: WORD_SIZE];
+                wire [WORD_SIZE-1:0] selected_bottom_out;
+                assign selected_bottom_out = ver_interconnect[VERTICAL_SIGNAL_OFFSET -1 -: WORD_SIZE];
 
                 wire [WORD_SIZE-1:0] proxy_stalled_left_in;
                 wire [WORD_SIZE-1:0] pe_right_out;
@@ -361,7 +400,8 @@ module stw_wproxy_systolic
                 ) proxy_right_out_ff (
                     .clk(clk && fault_detected[c] && proxy_map[c][r]),
                     .D(left_in_bus[(r+1) * WORD_SIZE -1 -: WORD_SIZE]),
-                    .Q(proxy_stalled_left_in)
+                    .Q(proxy_stalled_left_in),
+                    .shift_en(1'b0)
                 );
                 assign hor_interconnect[HORIZONTAL_SIGNAL_OFFSET -1 -: WORD_SIZE]= ((fault_detected[c] && proxy_map[c][r])) ? proxy_stalled_left_in : pe_right_out;
 
@@ -393,7 +433,7 @@ module stw_wproxy_systolic
                     .left_in(selected_left_in),
                     .top_in(selected_top_in),
                     .right_out(pe_right_out),
-                    .bottom_out(pe_bottom_out)
+                    .bottom_out(pe_bottom_out[c][((r+1)*WORD_SIZE)-1 -: WORD_SIZE])
                 );
             end
             else if (r==0)
@@ -417,17 +457,21 @@ module stw_wproxy_systolic
                 wire sel;
                 assign sel = fault_detected[c] && proxy_map[c][r];
 
-                wire [WORD_SIZE-1:0] pe_bottom_out;
-                // assign ver_interconnect[VERTICAL_SIGNAL_OFFSET -1 -: WORD_SIZE] = (fault_detected[c] && proxy_map[c][r]) ? 'b0 : pe_bottom_out;
+                // wire [WORD_SIZE-1:0] pe_bottom_out;
                 wire [WORD_SIZE-1:0] proxy_stalled_top_in;
                 vDFF #(
                     .WORD_SIZE(WORD_SIZE)
                 ) proxy_bottom_out_ff (
                     .clk(clk && fault_detected[c] && proxy_map[c][r]),
-                    .D(top_in_bus[(c+1) * WORD_SIZE - 1 -: WORD_SIZE]),
-                    .Q(proxy_stalled_top_in)
+                    .D(ver_interconnect[TOP_PEER_OFFSET -1 -: WORD_SIZE]),
+                    .Q(proxy_stalled_top_in),
+                    .shift_en(1'b1)
                 );
-                assign ver_interconnect[VERTICAL_SIGNAL_OFFSET -1 -: WORD_SIZE] = ((fault_detected[c] && proxy_map[c][r])) ? proxy_stalled_top_in : pe_bottom_out;
+               
+                assign ver_interconnect[VERTICAL_SIGNAL_OFFSET -1 -: WORD_SIZE] = ((fault_detected[c] && proxy_map[c][r])) ? proxy_stalled_top_in : pe_bottom_out[c][((r+1)*WORD_SIZE)-1 -: WORD_SIZE];
+
+                wire [WORD_SIZE-1:0] selected_bottom_out;
+                assign selected_bottom_out = ver_interconnect[VERTICAL_SIGNAL_OFFSET -1 -: WORD_SIZE];
 
                 wire [WORD_SIZE-1:0] proxy_stalled_left_in;
                 wire [WORD_SIZE-1:0] pe_right_out;
@@ -436,7 +480,8 @@ module stw_wproxy_systolic
                 ) proxy_right_out_ff (
                     .clk(clk && fault_detected[c] && proxy_map[c][r]),
                     .D(hor_interconnect[LEFT_PEER_OFFSET - 1 -: WORD_SIZE]),
-                    .Q(proxy_stalled_left_in)
+                    .Q(proxy_stalled_left_in),
+                    .shift_en(1'b0)
                 );
                 assign hor_interconnect[HORIZONTAL_SIGNAL_OFFSET -1 -: WORD_SIZE]= ((fault_detected[c] && proxy_map[c][r])) ? proxy_stalled_left_in : pe_right_out;
 
@@ -467,7 +512,7 @@ module stw_wproxy_systolic
                     .left_in(selected_left_in),
                     .top_in(selected_top_in),
                     .right_out(pe_right_out),
-                    .bottom_out(pe_bottom_out)
+                    .bottom_out(pe_bottom_out[c][((r+1)*WORD_SIZE)-1 -: WORD_SIZE])
                 );
 
             end
@@ -493,18 +538,21 @@ module stw_wproxy_systolic
                 wire [WORD_SIZE-1:0] selected_left_in;
                 assign selected_left_in = (fault_detected[c] && proxy_map[c][r]) ? rcm_left_in[c] : hor_interconnect[LEFT_PEER_OFFSET - 1 -: WORD_SIZE];
                 
-                wire [WORD_SIZE-1:0] pe_bottom_out;
-                // assign ver_interconnect[VERTICAL_SIGNAL_OFFSET -1 -: WORD_SIZE] = (fault_detected[c] && proxy_map[c][r]) ? 'b0 : pe_bottom_out;
+                // wire [WORD_SIZE-1:0] pe_bottom_out;
                 wire [WORD_SIZE-1:0] proxy_stalled_top_in;
                 vDFF #(
                     .WORD_SIZE(WORD_SIZE)
                 ) proxy_bottom_out_ff (
                     .clk(clk && fault_detected[c] && proxy_map[c][r]),
-                    .D(top_in_bus[(c+1) * WORD_SIZE - 1 -: WORD_SIZE]),
-                    .Q(proxy_stalled_top_in)
+                    .D(ver_interconnect[TOP_PEER_OFFSET -1 -: WORD_SIZE]),
+                    .Q(proxy_stalled_top_in),
+                    .shift_en(1'b1)
                 );
-                assign ver_interconnect[VERTICAL_SIGNAL_OFFSET -1 -: WORD_SIZE] = ((fault_detected[c] && proxy_map[c][r])) ? proxy_stalled_top_in : pe_bottom_out;
+              
+                assign ver_interconnect[VERTICAL_SIGNAL_OFFSET -1 -: WORD_SIZE] = ((fault_detected[c] && proxy_map[c][r])) ? proxy_stalled_top_in : pe_bottom_out[c][((r+1)*WORD_SIZE)-1 -: WORD_SIZE];
 
+                wire [WORD_SIZE-1:0] selected_bottom_out;
+                assign selected_bottom_out = ver_interconnect[VERTICAL_SIGNAL_OFFSET -1 -: WORD_SIZE];
 
                 wire [WORD_SIZE-1:0] proxy_stalled_left_in;
                 wire [WORD_SIZE-1:0] pe_right_out;
@@ -513,7 +561,8 @@ module stw_wproxy_systolic
                 ) proxy_right_out_ff (
                     .clk(clk && fault_detected[c] && proxy_map[c][r]),
                     .D(hor_interconnect[LEFT_PEER_OFFSET - 1 -: WORD_SIZE]),
-                    .Q(proxy_stalled_left_in)
+                    .Q(proxy_stalled_left_in),
+                    .shift_en(1'b0)
                 );
                 assign hor_interconnect[HORIZONTAL_SIGNAL_OFFSET -1 -: WORD_SIZE]= ((fault_detected[c] && proxy_map[c][r])) ? proxy_stalled_left_in : pe_right_out;
 
@@ -544,11 +593,26 @@ module stw_wproxy_systolic
                     .left_in(selected_left_in),
                     .top_in(selected_top_in),
                     .right_out(pe_right_out),
-                    .bottom_out(pe_bottom_out)
+                    .bottom_out(pe_bottom_out[c][((r+1)*WORD_SIZE)-1 -: WORD_SIZE])
                 );
+
             end
         end
     end
     endgenerate
+
+    // wire [(COLS*WORD_SIZE)-1:0] systolic_output;
+    // output_regfile #(
+    //     .COLS(COLS),
+    //     .WORD_SIZE(WORD_SIZE)
+    // ) systolic_output_reg (
+    //     .clk(clk),
+    //     .rst(rst),
+    //     .systolic_bottom_out_bus(bottom_out_bus),
+    //     .matmul_en(ctl_stat_bit_in && !ctl_dummy_fsm_op2_select_in && ctl_dummy_fsm_out_select_in),
+    //     .proxy_output_bus(proxy_output_bus),
+    //     .proxy_out_col_valid(proxy_out_valid_bus),
+    //     .systolic_reg_output(systolic_output)
+    // );
 
 endmodule
