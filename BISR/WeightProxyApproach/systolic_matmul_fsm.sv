@@ -15,6 +15,7 @@ module systolic_matmul_fsm
     top_matrix,
     left_matrix,
     start_fsm,
+    start_matmul,
 
     //Output Control Signals
     set_stationary,
@@ -37,6 +38,7 @@ module systolic_matmul_fsm
     input rst;   //Active-high reset
 
     input start_fsm;
+    input start_matmul;
 
     output logic set_stationary;
     output logic fsm_out_select_in;
@@ -69,7 +71,7 @@ module systolic_matmul_fsm
 
     //Note: traditional_mac has 2 regs (double-buffered). Thus it takes 2 clk cycles (1 matmul_cycle = 2 clk cycles) for each PE to produce a bottom_out output
     //So MATMUL has 2 stages for stalling
-    enum {INIT, SET_STATIONARY, MATMUL1, MATMUL2, FINISH} state;
+    enum {INIT, SET_STATIONARY, MATMUL1, MATMUL2, FINISH, STALL1, STALL2} state;
 
     always_ff @(posedge clk) begin
         if(rst) begin
@@ -115,9 +117,15 @@ module systolic_matmul_fsm
                     //Setup idx for matmul operation
                     matmul_cycle <= {($clog2(`ROWS)+4){1'b0}};
                     
-                    state <= MATMUL1;
+                    if(start_matmul)
+                        state <= MATMUL1;
+                    // state <= STALL1;
                 end
             end
+
+            STALL1: state <= STALL2;   //FIXME: Stalls added for testing, need to add reset for fsm
+
+            STALL2: state <= MATMUL1;
 
             MATMUL2: begin
                 if(matmul_cycle > `ROWS) begin                      

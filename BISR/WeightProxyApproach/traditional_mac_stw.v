@@ -130,7 +130,7 @@ wire [WORD_SIZE - 1: 0] add_op2_mux_out;
 
                     state <= REPAIR;
                 end
-                REPAIR: begin
+                REPAIR: begin   //Wait 1 cycle for proxy controller to load weight if this PE was chosen as proxy
                     STW_complete <= 1'b1;
                     stw_en <= 'b0;
                     state <= STW_IDLE;
@@ -220,7 +220,10 @@ begin
      else
      begin 
 
-`ifdef ENABLE_STW   //If STW enabled, override left_in_reg, top_in_reg
+`ifdef ENABLE_WPROXY
+    left_in_reg <= left_in;
+    top_in_reg <= top_in;
+`elsif ENABLE_STW   //If STW enabled, override left_in_reg, top_in_reg
     // stop updating the input registers while we run STW, this would allow us to continue execution with the last cycle's values.
     // This also requires that the inputs not change at the beginning of the SA.
     if (!stw_en) begin

@@ -9,10 +9,28 @@ module stw_matmul_tb();
     //Note: Matrix multiplication = left_matrix * top_matrix
 
     //top_matrix ordered col 0 to col `COLS-1, then row 0 to row `ROWS-1 --> left-most entry = entry row 0 col 0
-    //Ex. The below 3x3 top_matrix = [1 2 3]
-    //                               [4 5 6]
-    //                               [7 8 9]
-    logic [`ROWS * `COLS * `WORD_SIZE - 1 : 0] top_matrix = {`WORD_SIZE'd9, `WORD_SIZE'd8, `WORD_SIZE'd1, `WORD_SIZE'd6, `WORD_SIZE'd5, `WORD_SIZE'd4, `WORD_SIZE'd3, `WORD_SIZE'd2, `WORD_SIZE'd7};
+    //Ex. The below 3x3 top_matrix = [1 2 3 7]
+    //                               [4 5 6 7]
+    //                               [1 8 9 7]
+    //                               [6 7 1 8]
+    logic [`ROWS * `COLS * `WORD_SIZE - 1 : 0] top_matrix;  // = {`WORD_SIZE'd0, `WORD_SIZE'd1, `WORD_SIZE'd7, `WORD_SIZE'd6, `WORD_SIZE'd3, `WORD_SIZE'd9, `WORD_SIZE'd21, `WORD_SIZE'd1, `WORD_SIZE'd2, `WORD_SIZE'd6, `WORD_SIZE'd0, `WORD_SIZE'd4, `WORD_SIZE'd1, `WORD_SIZE'd3, `WORD_SIZE'd2, `WORD_SIZE'd1};
+    logic [`WORD_SIZE-1:0]  top_matrix_2d[`ROWS][`COLS] = '{'{`WORD_SIZE'd1, `WORD_SIZE'd0, `WORD_SIZE'd0, `WORD_SIZE'd1},
+                                                     '{`WORD_SIZE'd4, `WORD_SIZE'd8, `WORD_SIZE'd6, `WORD_SIZE'd2},
+                                                     '{`WORD_SIZE'd0, `WORD_SIZE'd21, `WORD_SIZE'd9, `WORD_SIZE'd3},
+                                                     '{`WORD_SIZE'd6, `WORD_SIZE'd7, `WORD_SIZE'd1, `WORD_SIZE'd0}};
+    
+    //Set flatten top_matrix_2d into proper 1d format for matmul_fsm
+    initial begin
+        for(integer r = 0; r < `ROWS; r++) begin
+           for(integer c = 0; c < `COLS; c++) begin
+                top_matrix[(r*`COLS+c)*`WORD_SIZE +: `WORD_SIZE] = top_matrix_2d[r][c];
+                // $write("%d ", top_matrix[(r*`COLS+c)*`WORD_SIZE +: `WORD_SIZE]);
+            end
+            $write("\n");
+        end
+    end
+
+    // logic [`ROWS * `COLS * `WORD_SIZE - 1 : 0] top_matrix = {`WORD_SIZE'd9, `WORD_SIZE'd8, `WORD_SIZE'd1, `WORD_SIZE'd6, `WORD_SIZE'd5, `WORD_SIZE'd4, `WORD_SIZE'd3, `WORD_SIZE'd2, `WORD_SIZE'd1};
     //2x2 example
     // logic [`ROWS * `COLS * `WORD_SIZE - 1 : 0] top_matrix = {`WORD_SIZE'd4, `WORD_SIZE'd3, `WORD_SIZE'd2, `WORD_SIZE'd1};
 
@@ -20,9 +38,16 @@ module stw_matmul_tb();
     //Ex. The below 3x3 left_matrix = [9 4  1]
     //                                [5 12 3]
     //                                [6 8  7]
-    logic [`WORD_SIZE:0] left_matrix[`ROWS][`COLS] = '{'{`WORD_SIZE'd9, `WORD_SIZE'd4, `WORD_SIZE'd1},
-                                                     '{`WORD_SIZE'd5, `WORD_SIZE'd12, `WORD_SIZE'd3},
-                                                     '{`WORD_SIZE'd6, `WORD_SIZE'd8, `WORD_SIZE'd7}};
+    // logic [`WORD_SIZE:0] left_matrix[`ROWS][`COLS] = '{'{`WORD_SIZE'd9, `WORD_SIZE'd4, `WORD_SIZE'd1},
+    //                                                  '{`WORD_SIZE'd5, `WORD_SIZE'd12, `WORD_SIZE'd3},
+    //                                                  '{`WORD_SIZE'd6, `WORD_SIZE'd8, `WORD_SIZE'd7}};
+
+
+    logic [`WORD_SIZE:0] left_matrix[`ROWS][`COLS] = '{'{`WORD_SIZE'd9, `WORD_SIZE'd4, `WORD_SIZE'd2, `WORD_SIZE'd1},
+                                                     '{`WORD_SIZE'd5, `WORD_SIZE'd12, `WORD_SIZE'd3, `WORD_SIZE'd2},
+                                                     '{`WORD_SIZE'd6, `WORD_SIZE'd8, `WORD_SIZE'd7, `WORD_SIZE'd3},
+                                                     '{`WORD_SIZE'd7, `WORD_SIZE'd3, `WORD_SIZE'd8, `WORD_SIZE'd4}};
+
     //2x2 Example
     // logic [`WORD_SIZE:0] left_matrix[`ROWS][`COLS] = '{'{`WORD_SIZE'd2, `WORD_SIZE'd1},
     //                                                  '{`WORD_SIZE'd6, `WORD_SIZE'd7}};
@@ -31,9 +56,10 @@ module stw_matmul_tb();
     //[9 4  1]   [1 2 3]    [32 46  60 ]    
     //[5 12 3] * [4 5 6] =  [74 94  114]
     //[6 8  7]   [7 8 9]    [87 108 129]
-    logic [`WORD_SIZE:0] expected_out[`ROWS][`COLS] = '{'{`WORD_SIZE'd32, `WORD_SIZE'd46, `WORD_SIZE'd60},
-                                                     '{`WORD_SIZE'd74, `WORD_SIZE'd94, `WORD_SIZE'd114},
-                                                     '{`WORD_SIZE'd87, `WORD_SIZE'd108, `WORD_SIZE'd129}};
+    logic [`WORD_SIZE:0] expected_out[`ROWS][`COLS];
+    // logic [`WORD_SIZE:0] expected_out[`ROWS][`COLS] = '{'{`WORD_SIZE'd32, `WORD_SIZE'd46, `WORD_SIZE'd60},
+    //                                                  '{`WORD_SIZE'd74, `WORD_SIZE'd94, `WORD_SIZE'd114},
+    //                                                  '{`WORD_SIZE'd87, `WORD_SIZE'd108, `WORD_SIZE'd129}};
  
     logic [`ROWS * `WORD_SIZE - 1: 0] left_in_bus;
     logic [`COLS * `WORD_SIZE - 1: 0] top_in_bus;
@@ -81,6 +107,9 @@ module stw_matmul_tb();
     //     .right_out_bus(right_out_bus)
     // );
 
+    logic [`COLS-1:0] proxy_out_valid_bus;
+    logic [(`COLS*`WORD_SIZE)-1: 0] proxy_output_bus;
+
     stw_wproxy_systolic #(`ROWS, `COLS, `WORD_SIZE) stw_mac_dut (
         .clk(clk),
         .rst(rst),
@@ -102,7 +131,10 @@ module stw_matmul_tb();
             .STW_complete_out(STW_complete),
             .STW_result_mat(STW_result_mat),
         `endif
-
+        `ifdef ENABLE_WPROXY
+            .proxy_output_bus(proxy_output_bus),
+            .proxy_out_valid_bus(proxy_out_valid_bus),
+        `endif
         .left_in_bus(left_in_bus),
         .top_in_bus(top_in_bus),
         .bottom_out_bus(bottom_out_bus),
@@ -125,7 +157,7 @@ module stw_matmul_tb();
             `else
                 //Inject faulty MAC manually at array[0,1]
                 fi_row = 0;
-                fi_col = 1;
+                fi_col = 2;
                 fault_inject_bus[(fi_col*`ROWS+fi_row)*2 +: 2] = 2'b01;
                 $display("Injected fault at col %0d, row %0d", fi_col, fi_row);
             `endif
@@ -135,6 +167,7 @@ module stw_matmul_tb();
     logic[`COLS * `WORD_SIZE-1:0] matmul_output;
     logic [`COLS-1:0] output_col_valid;
     logic start_fsm;
+    logic start_matmul;
 
     systolic_matmul_fsm matmul_dut(
         .clk(clk),
@@ -142,6 +175,7 @@ module stw_matmul_tb();
         .top_matrix(top_matrix),
         .left_matrix(left_matrix),
         .start_fsm(start_fsm),
+        .start_matmul(start_matmul),
         .set_stationary(set_stationary),
         .fsm_out_select_in(ctl_dummy_fsm_out_select_in),
         .stat_bit_in(ctl_stat_bit_in),
@@ -153,18 +187,26 @@ module stw_matmul_tb();
     );
 
     logic [`WORD_SIZE - 1:0] output_matrix[`ROWS][`COLS];
+
     matmul_output_control matmul_out_dut(
         .clk(clk),
         .rst(rst),
         .matmul_fsm_output(bottom_out_bus),
+        `ifdef ENABLE_WPROXY
+            .proxy_output_bus(proxy_output_bus),
+            .proxy_out_valid_bus(proxy_out_valid_bus),
+        `endif
         .matmul_output_valid(output_col_valid),
         .output_matrix(output_matrix)
     );
 
-
+    localparam NUM_FAULTS = 4;
+    logic [`ROWS-1:0] fi_row_arr[NUM_FAULTS] = {'d1, 'd2, 'd3, 'd0};
+    logic [`COLS-1:0] fi_col_arr[NUM_FAULTS] = {'d0, 'd1, 'd2, 'd3};
     integer r, c, curr_output;
     initial begin
         start_fsm = 1;
+        start_matmul = 0;
         rst = 1'b1;
         @(negedge clk);
         rst = 1'b0;
@@ -172,11 +214,18 @@ module stw_matmul_tb();
         @(negedge clk);
         
         `ifdef ENABLE_FI
-            fi_row = 1;
-            fi_col = 1;
-            fault_inject_bus[(fi_col*`ROWS+fi_row)*2 +: 2] = 2'b01;
-            $display("Injected fault at col %0d, row %0d", fi_col, fi_row);
+            for(integer f = 0; f < NUM_FAULTS; f++) begin
+                fi_row = fi_row_arr[f];
+                fi_col = fi_col_arr[f];
+                fault_inject_bus[(fi_col*`ROWS+fi_row)*2 +: 2] = 2'b01;
+                $display("Injected fault at col %0d, row %0d", fi_col, fi_row);
+            end
 
+            // fi_row = 1;
+            // fi_col = 1;
+            // fault_inject_bus[(fi_col*`ROWS+fi_row)*2 +: 2] = 2'b01;
+            // $display("Injected fault at col %0d, row %0d", fi_col, fi_row);
+            
             @(negedge clk);
         `endif
 
@@ -220,10 +269,11 @@ module stw_matmul_tb();
                 end
                 $write("\n");
             end
-        #15;
+        #30;
         `endif
+        start_matmul = 1;
         start_fsm = 1;
-        #200
+        #300
 
         $display("Expected Output: left_matrix * top_matrix");
         for(integer r = 0; r < `ROWS; r++) begin

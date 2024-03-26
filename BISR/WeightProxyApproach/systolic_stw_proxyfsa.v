@@ -286,7 +286,7 @@ module stw_wproxy_systolic
                     .WORD_SIZE(WORD_SIZE)
                 ) proxy_bottom_out_ff (
                     .clk(clk && fault_detected[c] && proxy_map[c][r]),
-                    .D(ver_interconnect[TOP_PEER_OFFSET -1 -: WORD_SIZE]),
+                    .D(top_in_bus[(c+1) * WORD_SIZE - 1 -: WORD_SIZE]),
                     .Q(proxy_stalled_top_in),
                     .shift_en(1'b1)
                 );
@@ -463,7 +463,7 @@ module stw_wproxy_systolic
                     .WORD_SIZE(WORD_SIZE)
                 ) proxy_bottom_out_ff (
                     .clk(clk && fault_detected[c] && proxy_map[c][r]),
-                    .D(ver_interconnect[TOP_PEER_OFFSET -1 -: WORD_SIZE]),
+                    .D(top_in_bus[(c+1) * WORD_SIZE - 1 -: WORD_SIZE]),
                     .Q(proxy_stalled_top_in),
                     .shift_en(1'b1)
                 );

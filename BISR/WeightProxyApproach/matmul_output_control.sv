@@ -60,7 +60,7 @@ module matmul_output_control
 
     logic proxy_wr_en;
     logic [WORD_SIZE-1:0] p_write_data;
-    logic [WORD_SIZE-1:0] test;
+    logic [WORD_SIZE-1:0] test, test_fsm_output;
     always_ff @(posedge clk) begin
         if(rst)
             proxy_wr_en <= 1'b0;
@@ -75,6 +75,7 @@ module matmul_output_control
                 if(matmul_output_valid[c1]) begin
                     write_count[c1] <= write_count[c1]+1'b1;   //Tracks what row of output_matrix we are writing to for col c1
                     output_matrix[write_count[c1]][c1] <= output_matrix[write_count[c1]][c1] + matmul_fsm_output[c1 * WORD_SIZE +: WORD_SIZE];   //Update output matrix
+                    test_fsm_output <= matmul_fsm_output[c1 * WORD_SIZE +: WORD_SIZE];
                     ram_we <= 1'b1;
                     ram_addr <= ((write_count[c1]*`COLS) + c1);
                     output_in <= matmul_fsm_output[c1 * WORD_SIZE +: WORD_SIZE];
