@@ -219,8 +219,7 @@ begin
      end
      else
      begin 
-        left_in_reg <= left_in;
-        top_in_reg <= top_in;
+
 `ifdef ENABLE_STW   //If STW enabled, override left_in_reg, top_in_reg
     // stop updating the input registers while we run STW, this would allow us to continue execution with the last cycle's values.
     // This also requires that the inputs not change at the beginning of the SA.
@@ -228,6 +227,9 @@ begin
         left_in_reg <= left_in;
         top_in_reg <= top_in;
     end
+`else
+    left_in_reg <= left_in;
+    top_in_reg <= top_in;
 `endif 
      end
 end
