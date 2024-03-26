@@ -253,7 +253,7 @@ begin
 
 `ifdef ENABLE_STW
         if (!stw_en) begin
-            accumulator_reg <= adder_out;
+            accumulator_reg <= (STW_result_out == 0) ? top_in_reg : adder_out;
         end
 `else
     accumulator_reg <= (STW_result_out == 0) ? top_in_reg : adder_out;
