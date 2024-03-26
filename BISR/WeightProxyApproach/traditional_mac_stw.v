@@ -164,8 +164,8 @@ wire [WORD_SIZE - 1: 0] add_op2_mux_out;
 assign right_out = left_in_reg;
 
 `ifdef ENABLE_WPROXY
-    assign bottom_out = (STW_result_out == 0) ? top_in_reg : ((fsm_out_select_in == 1'b0) ? {tie_low[WORD_SIZE - 1: 0] | top_in_reg} : accumulator_reg);   //Enable bypassing if STW detected a fault
-    // assign bottom_out = (fsm_out_select_in == 1'b0) ? {tie_low[WORD_SIZE - 1: 0] | top_in_reg} : accumulator_reg;
+    // assign bottom_out = (STW_result_out == 0) ? top_in_reg : ((fsm_out_select_in == 1'b0) ? {tie_low[WORD_SIZE - 1: 0] | top_in_reg} : accumulator_reg);   //Enable bypassing if STW detected a fault
+    assign bottom_out = (fsm_out_select_in == 1'b0) ? {tie_low[WORD_SIZE - 1: 0] | top_in_reg} : accumulator_reg;
 `else
     assign bottom_out = (fsm_out_select_in == 1'b0) ? {tie_low[WORD_SIZE - 1: 0] | top_in_reg} : accumulator_reg;
 `endif
@@ -197,7 +197,7 @@ wire [WORD_SIZE - 1: 0] multiplier_out;
 `elsif ENABLE_STW
     assign multiplier_out = stw_en ? stw_multiplier_reg : left_in_reg * mult_op2_mux_out;
 `else
-    // wire [WORD_SIZE - 1: 0] multiplier_out;
+
     assign multiplier_out = left_in_reg * mult_op2_mux_out;
 `endif
 
@@ -219,17 +219,15 @@ begin
      end
      else
      begin 
-
-`ifdef ENABLE_STW
+        left_in_reg <= left_in;
+        top_in_reg <= top_in;
+`ifdef ENABLE_STW   //If STW enabled, override left_in_reg, top_in_reg
     // stop updating the input registers while we run STW, this would allow us to continue execution with the last cycle's values.
     // This also requires that the inputs not change at the beginning of the SA.
     if (!stw_en) begin
         left_in_reg <= left_in;
         top_in_reg <= top_in;
     end
-`else 
-        left_in_reg <= left_in;
-        top_in_reg <= top_in;
 `endif 
      end
 end
@@ -253,7 +251,7 @@ begin
             accumulator_reg <= adder_out;
         end
 `else
-    accumulator_reg <= adder_out;
+    accumulator_reg <= (STW_result_out == 0) ? top_in_reg : adder_out;
 `endif
     end
 end
