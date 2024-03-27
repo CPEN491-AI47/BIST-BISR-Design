@@ -10,7 +10,7 @@ module data_buffer #(
     input [COLS-1:0] col[0:NUM_RU-1],
     input [WORD_SIZE-1:0] data,
     
-    output [WORD_SIZE-1:0] q_data[0:NUM_RU-1]
+    output reg [WORD_SIZE-1:0] q_data[0:NUM_RU-1]
 );
     reg [WORD_SIZE-1:0] buffer[0:ROWS-1][0:COLS-1];
 
