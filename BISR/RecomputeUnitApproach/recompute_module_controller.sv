@@ -17,28 +17,45 @@ module recompute_module_controller#(
     reg [COLS-1:0] faultyCol[NUM_RU-1:0];
 
     reg [2:0] state;
-    reg [COLS-1:0] i = 0;
+    reg [NUM_RU-1:0] i = 0;
+    reg start = 0;    
 
     parameter idle = 3'd0;
     parameter doRecomputing1 = 3'd1;
     parameter doRecomputing2 = 3'd2;
 
-    integer N;
-    genvar r, c;
+
+    reg [ROWS-1:0] r = 0;
+
+    always @(posedge clk)
+        if (r < ROWS)   r <= r+1;
+        else            r <= 0;
+
+    reg [NUM_RU-1:0] N = 0;
+
+    always @(posedge clk)
+        if (N < NUM_RU)     N <= N+1;
+        else                N <= 0;
+        
+
+    reg [NUM_RU-1:0] count = 0;
+
+    always @(posedge clk)
+        if(count <= NUM_RU) 
+            count <= count + 1;
+        else begin
+            count <= 0;
+            start <= 1;
+        end
+
+    genvar c;
     generate
-        for(c=0; c<COLS; c=c+1)
-            for(r=0; r<ROWS; r=r+1)
-                always @(*)
-                    if(rst) 
-                        for(N=0; N<NUM_RU; N=N+1) begin
-                            faultyRow[N] <= 'dx;
-                            faultyCol[N] <= 'dx;
-                        end
-                    else if(!STW_result_mat[r][c]) begin
-                        count_faults <= count_faults + 1;
-                        faultyRow[count_faults-1] <= r;
-                        faultyCol[count_faults-1] <= c;
-                    end
+        for(c=0; c<ROWS; c=c+1)
+            always @(*)
+                if(!STW_result_mat[r][c]) begin
+                    faultyRow[N] = r;
+                    faultyCol[N] = c;
+                end
     endgenerate
 
     genvar f;
@@ -55,7 +72,8 @@ module recompute_module_controller#(
                             dataCol[f] <= 'dx;
                             weightRow[f] <= 'dx;
                             weightCol[f] <= 'dx;
-                            state <= doRecomputing1;
+                            if(start)   state <= doRecomputing1;
+                            else        state <= idle;
                         end
                         doRecomputing1: begin
                             dataRow[f] <= faultyRow[f]; 
@@ -71,7 +89,7 @@ module recompute_module_controller#(
                             weightRow[f] <= faultyRow[f];
                             weightCol[f] <= faultyCol[f];
                             i <= i + 1;
-                            if(i<COLS) state <= doRecomputing2;
+                            if(i<COLS-1) state <= doRecomputing2;
                             else state <= idle;
                         end
                     endcase
