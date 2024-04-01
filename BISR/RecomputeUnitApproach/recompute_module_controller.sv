@@ -7,14 +7,16 @@ module recompute_module_controller#(
     input rst,
     input STW_result_mat[0:ROWS-1][0:COLS-1],
 
-    output reg [ROWS-1:0] dataRow[NUM_RU-1:0],
-    output reg [COLS-1:0] dataCol[NUM_RU-1:0],
-    output reg [ROWS-1:0] weightRow[NUM_RU-1:0],
-    output reg [COLS-1:0] weightCol[NUM_RU-1:0]
+
+    output wire start_recomputing,
+    output reg [ROWS-1:0] dataRow[0:NUM_RU-1],
+    output reg [COLS-1:0] dataCol[0:NUM_RU-1],
+    output reg [ROWS-1:0] weightRow[0:NUM_RU-1],
+    output reg [COLS-1:0] weightCol[0:NUM_RU-1]
 );
     reg [NUM_RU-1:0] count_faults = 0;
-    reg [ROWS-1:0] faultyRow[NUM_RU-1:0];
-    reg [COLS-1:0] faultyCol[NUM_RU-1:0];
+    reg [ROWS-1:0] faultyRow[0:NUM_RU-1];
+    reg [COLS-1:0] faultyCol[0:NUM_RU-1];
 
     reg [2:0] state;
     reg [NUM_RU-1:0] i = 0;
@@ -47,6 +49,8 @@ module recompute_module_controller#(
             count <= 0;
             start <= 1;
         end
+
+    assign start_recomputing = start;
 
     genvar c;
     generate
