@@ -89,14 +89,14 @@ module stw_wproxy_systolic
 
         genvar curr_col;
         generate
-            for(curr_col=0; curr_col < COLS; curr_col=curr_col+1) begin
+            for(curr_col=0; curr_col < COLS; curr_col=curr_col+1) begin : load_col_min_weight_genblk
+                //If set_proxy_en: Compare each incoming weight to find smallest to set as Proxy
                 always @(*) begin
                     if(rst) begin
                         load_col_min_weight[curr_col] = 1'b0;
                     end
                     else begin
                         if(set_proxy_en) begin
-                            //if(!ctl_dummy_fsm_out_select_in && ctl_dummy_fsm_op2_select_in) begin  NOTE: <- check if needed
                             if(curr_stationary_row_idx == (ROWS-1'b1)) begin   //First weight in, load as curr_min_weight
                                 load_col_min_weight[curr_col] = 1'b1;
                             end
@@ -106,7 +106,6 @@ module stw_wproxy_systolic
                             else begin
                                 load_col_min_weight[curr_col] = 1'b0;
                             end
-                            //end
                         end
                         else begin
                             load_col_min_weight[curr_col] = 1'b0;
@@ -129,6 +128,7 @@ module stw_wproxy_systolic
             end
         endgenerate
 
+        //Maintains set_proxy_en according to current state of systolic (SET_STATIONARY or MATMUL)
         always @(posedge clk) begin   //NOTE: Check if this fsm needs to be in generate (may only need 1 shared amongst all cols)
             if(rst) begin
                 proxy_state <= `PROXY_TBD;
@@ -155,6 +155,9 @@ module stw_wproxy_systolic
                             //NOTE: Check if set_proxy_en still active for this last cycle
                             proxy_state <= `PROXY_SET;
                         end
+                        else begin
+                            proxy_state <= `PROXY_TBD;
+                        end
                     end
                     `PROXY_SET: begin
                         set_proxy_en <= 1'b0;
@@ -170,14 +173,14 @@ module stw_wproxy_systolic
     wire [ROWS * COLS * WORD_SIZE - 1: 0] hor_interconnect;
     wire [COLS * ROWS * WORD_SIZE - 1: 0] ver_interconnect;
 
-    wire [NUM_BITS_ROWS-1:0] rcm_idx_sel [COLS-1:0];
+    wire [NUM_BITS_ROWS-1:0] fpe_idx_sel [COLS-1:0];
     // wire [ROWS-1:0] proxy_en;
     wire [COLS-1:0] fault_detected;
     wire [WORD_SIZE-1:0] proxy_left_in;
-    wire [WORD_SIZE-1:0] rcm_output;
+    wire [WORD_SIZE-1:0] fpe_output;
 
     wire [(ROWS*WORD_SIZE)-1:0] stationary_operand_mat [COLS-1:0];   //Index all stationary operands of all rows in col by col idx
-    wire [WORD_SIZE-1:0] rcm_in_weight [COLS-1:0];
+    wire [WORD_SIZE-1:0] fpe_in_weight [COLS-1:0];
     wire [WORD_SIZE-1:0] rcm_top_in [COLS-1:0];
 
     wire [2:0] col_proxy_settings [COLS-1:0];
@@ -187,10 +190,20 @@ module stw_wproxy_systolic
 
     wire [(ROWS*WORD_SIZE)-1:0] pe_bottom_out [COLS-1:0];
     wire [NUM_BITS_ROWS-1:0] proxy_idx [COLS-1:0];
+
+    wire [WORD_SIZE-1:0] proxy_stalled_top_in [COLS-1:0];
+    wire [WORD_SIZE-1:0] proxy_stalled_right_out [COLS-1:0];
+    wire [(ROWS*WORD_SIZE)-1:0] col_idxed_hor_interconnect [COLS-1:0];   //hor_interconnect organized by col
+    
     genvar r, c;
     generate
     for (r = 0; r < ROWS; r = r + 1) begin : right_out_genblk
         assign right_out_bus[(r+1) * WORD_SIZE - 1 -: WORD_SIZE] = hor_interconnect[r * COLS * WORD_SIZE + COLS * WORD_SIZE - 1 -: WORD_SIZE];
+        
+        for(c = 0; c < COLS; c = c+1) begin : col_idx_horinterconnect_genblk
+            localparam COLS_NEQ0_LEFT_PEER_OFFSET = (r * COLS + c) * WORD_SIZE;
+            assign col_idxed_hor_interconnect[c][(r*WORD_SIZE) +: WORD_SIZE] = hor_interconnect[COLS_NEQ0_LEFT_PEER_OFFSET +: WORD_SIZE];
+        end
     end 
 
     for (c  = 0; c < COLS; c = c + 1) begin : bottom_out_genblk
@@ -204,8 +217,8 @@ module stw_wproxy_systolic
             .WORD_SIZE(WORD_SIZE)
         ) rcm_stationary_in_mux (
             .input_options_bus(stationary_operand_mat[c]),
-            .out_sel(rcm_idx_sel[c]),
-            .mux_out(rcm_in_weight[c])
+            .out_sel(fpe_idx_sel[c]),
+            .mux_out(fpe_in_weight[c])
         );
 
         multiplexer_Nto1 #(
@@ -213,7 +226,7 @@ module stw_wproxy_systolic
             .WORD_SIZE(WORD_SIZE)
         ) rcm_left_in_mux (
             .input_options_bus(left_in_bus),
-            .out_sel(rcm_idx_sel[c]),
+            .out_sel(fpe_idx_sel[c]),
             .mux_out(rcm_left_in[c])
         );
 
@@ -229,30 +242,63 @@ module stw_wproxy_systolic
         multiplexer_Nto1 #(
             .NUM_INPUTS(ROWS),
             .WORD_SIZE(WORD_SIZE)
-        ) rcm_output_mux (
+        ) proxy_output_mux (
             .input_options_bus(pe_bottom_out[c]),
-            .out_sel(proxy_idx[c]),  //FIXME: Change to proper sel after modifying mux to sel by one-hot
-            // .out_sel(2'd3),   //FIXME: const val for testing
+            .out_sel(proxy_idx[c]),
             .mux_out(proxy_output_bus[(c*WORD_SIZE) +: WORD_SIZE])
+        );
+
+        wire [(ROWS*WORD_SIZE)-1:0] col_top_in;   //Bus with top_in of each row in curr col
+        wire [WORD_SIZE-1:0] proxy_top_in;
+        localparam ROWS_NEQ0_TOP_IN_OFFSET = (c*ROWS)*WORD_SIZE;
+        assign col_top_in = {ver_interconnect[ROWS_NEQ0_TOP_IN_OFFSET +: ((ROWS-1)*WORD_SIZE)], top_in_bus[(c+1) * WORD_SIZE - 1 -: WORD_SIZE]};
+       
+        multiplexer_Nto1 #(
+            .NUM_INPUTS(ROWS),
+            .WORD_SIZE(WORD_SIZE)
+        ) proxy_top_in_mux (
+            .input_options_bus(col_top_in),
+            .out_sel(proxy_idx[c]),
+            .mux_out(proxy_top_in)
+        );
+
+
+        reg [(ROWS*WORD_SIZE)-1:0] col_left_in;
+        wire [WORD_SIZE-1:0] proxy_orig_left_in;
+
+        always @(*) begin
+            if(c == 0)
+                col_left_in = left_in_bus;
+            else 
+                col_left_in = col_idxed_hor_interconnect[c];
+        end
+        
+        multiplexer_Nto1 #(
+            .NUM_INPUTS(ROWS),
+            .WORD_SIZE(WORD_SIZE)
+        ) proxy_orig_left_in_mux (
+            .input_options_bus(col_left_in),
+            .out_sel(proxy_idx[c]),
+            .mux_out(proxy_orig_left_in)
         );
 
         wire [COLS-1:0] proxy_matmul_mode;
         wire [COLS-1:0] proxy_setstationary_mode;
-        recompute_controller #(
+        proxy_controller #(
             .ROWS(ROWS),
             .COL_IDX(c),
             .WORD_SIZE(WORD_SIZE)
-        ) rcm_ctrl (
+        ) proxy_ctrl (
             .clk(clk),
             .rst(rst),
             .set_stationary_mode(proxy_setstationary_mode[c]),
             .matmul_mode(proxy_matmul_mode[c]),
             .STW_complete(STW_complete_out),
             .STW_result_mat(STW_result_mat[(c*ROWS) +: ROWS]),   //STW results for this col
-            .rcm_idx_sel(rcm_idx_sel[c]),   //Selects idx of weight & bottom_out
-            .rcm_in_weight(rcm_in_weight[c]),   //Currently selected weight & bottom_out
-            .rcm_in_top(),
-            .rcm_in_col_output(bottom_out_bus[(c+1) * WORD_SIZE - 1 -: WORD_SIZE]),
+            .fpe_idx_sel(fpe_idx_sel[c]),   //Selects idx of weight & bottom_out
+            .fpe_in_weight(fpe_in_weight[c]),   //Currently selected weight & bottom_out
+            .fpe_in_top(),
+            .fpe_in_col_output(bottom_out_bus[(c+1) * WORD_SIZE - 1 -: WORD_SIZE]),
             .proxy_en(proxy_en[c]),
             .rcm_left_in(rcm_left_in[c]),
             .load_proxy(),
@@ -260,8 +306,12 @@ module stw_wproxy_systolic
             .proxy_settings(col_proxy_settings[c]),
             .fault_detected(fault_detected[c]),
             .proxy_left_in(),
-            .rcm_output(),
-            .rcm_weight(rcm_top_in[c]),
+            .fpe_output(),
+            .fpe_weight(rcm_top_in[c]),
+            .proxy_top_in(proxy_top_in),
+            .proxy_orig_left_in(proxy_orig_left_in),
+            .proxy_stalled_top_in(proxy_stalled_top_in[c]),
+            .proxy_stalled_right_out(proxy_stalled_right_out[c]),
             .proxy_out_valid(proxy_out_valid_bus[c])
         );
     end
@@ -280,34 +330,34 @@ module stw_wproxy_systolic
                                
                 assign {stat_bit_in, fsm_out_select_in, fsm_op2_select_in} = (fault_detected[c] && proxy_map[c][r]) ? col_proxy_settings[c] : {ctl_stat_bit_in, ctl_dummy_fsm_out_select_in, ctl_dummy_fsm_op2_select_in};
                 
-                wire [WORD_SIZE-1:0] proxy_stalled_top_in;
-                // wire [WORD_SIZE-1:0] pe_bottom_out;
-                vDFF #(
-                    .WORD_SIZE(WORD_SIZE)
-                ) proxy_bottom_out_ff (
-                    .clk(clk && fault_detected[c] && proxy_map[c][r]),
-                    .D(top_in_bus[(c+1) * WORD_SIZE - 1 -: WORD_SIZE]),
-                    .Q(proxy_stalled_top_in),
-                    .shift_en(1'b1)
-                );
+                // wire [WORD_SIZE-1:0] proxy_stalled_top_in;
+                // vDFF #(
+                //     .WORD_SIZE(WORD_SIZE)
+                // ) proxy_bottom_out_ff (
+                //     .clk(clk && fault_detected[c] && proxy_map[c][r]),
+                //     .D(top_in_bus[(c+1) * WORD_SIZE - 1 -: WORD_SIZE]),
+                //     .Q(proxy_stalled_top_in),
+                //     .shift_en(1'b1)
+                // );
             
                 
-                assign ver_interconnect[VERTICAL_SIGNAL_OFFSET -1 -: WORD_SIZE] = ((fault_detected[c] && proxy_map[c][r])) ? proxy_stalled_top_in : pe_bottom_out[c][((r+1)*WORD_SIZE)-1 -: WORD_SIZE];
+                assign ver_interconnect[VERTICAL_SIGNAL_OFFSET -1 -: WORD_SIZE] = ((fault_detected[c] && proxy_map[c][r])) ? proxy_stalled_top_in[c] : pe_bottom_out[c][((r+1)*WORD_SIZE)-1 -: WORD_SIZE];
 
                 wire [WORD_SIZE-1:0] selected_bottom_out;
                 assign selected_bottom_out = ver_interconnect[VERTICAL_SIGNAL_OFFSET -1 -: WORD_SIZE];
 
-                wire [WORD_SIZE-1:0] proxy_stalled_left_in;
                 wire [WORD_SIZE-1:0] pe_right_out;
-                vDFF #(
-                    .WORD_SIZE(WORD_SIZE)
-                ) proxy_right_out_ff (
-                    .clk(clk && fault_detected[c] && proxy_map[c][r]),
-                    .D(left_in_bus[(r+1) * WORD_SIZE -1 -: WORD_SIZE]),
-                    .Q(proxy_stalled_left_in),
-                    .shift_en(1'b0)
-                );
-                assign hor_interconnect[HORIZONTAL_SIGNAL_OFFSET -1 -: WORD_SIZE] = ((fault_detected[c] && proxy_map[c][r])) ? proxy_stalled_left_in : pe_right_out;
+                // wire [WORD_SIZE-1:0] proxy_stalled_left_in;
+                // vDFF #(
+                //     .WORD_SIZE(WORD_SIZE)
+                // ) proxy_right_out_ff (
+                //     .clk(clk && fault_detected[c] && proxy_map[c][r]),
+                //     .D(left_in_bus[(r+1) * WORD_SIZE -1 -: WORD_SIZE]),
+                //     .Q(proxy_stalled_left_in),
+                //     .shift_en(1'b0)
+                // );
+
+                assign hor_interconnect[HORIZONTAL_SIGNAL_OFFSET -1 -: WORD_SIZE] = ((fault_detected[c] && proxy_map[c][r])) ? proxy_stalled_right_out[c] : pe_right_out;
 
                 wire [WORD_SIZE-1:0] selected_top_in;
                 assign selected_top_in = (fault_detected[c] && proxy_map[c][r]) ? rcm_top_in[c] : top_in_bus[(c+1) * WORD_SIZE - 1 -: WORD_SIZE];
@@ -377,33 +427,31 @@ module stw_wproxy_systolic
                 wire sel;
                 assign sel = fault_detected[c] && proxy_map[c][r];
 
-                // wire [WORD_SIZE-1:0] pe_bottom_out;
-
-                wire [WORD_SIZE-1:0] proxy_stalled_top_in;
-                vDFF #(
-                    .WORD_SIZE(WORD_SIZE)
-                ) proxy_bottom_out_ff (
-                    .clk(clk && fault_detected[c] && proxy_map[c][r]),
-                    .D(ver_interconnect[TOP_PEER_OFFSET -1 -: WORD_SIZE]),
-                    .Q(proxy_stalled_top_in),
-                    .shift_en(1'b1)
-                );
+                // wire [WORD_SIZE-1:0] proxy_stalled_top_in;
+                // vDFF #(
+                //     .WORD_SIZE(WORD_SIZE)
+                // ) proxy_bottom_out_ff (
+                //     .clk(clk && fault_detected[c] && proxy_map[c][r]),
+                //     .D(ver_interconnect[TOP_PEER_OFFSET -1 -: WORD_SIZE]),
+                //     .Q(proxy_stalled_top_in),
+                //     .shift_en(1'b1)
+                // );
                 
-                assign ver_interconnect[VERTICAL_SIGNAL_OFFSET -1 -: WORD_SIZE] = ((fault_detected[c] && proxy_map[c][r])) ? proxy_stalled_top_in : pe_bottom_out[c][((r+1)*WORD_SIZE)-1 -: WORD_SIZE];
+                assign ver_interconnect[VERTICAL_SIGNAL_OFFSET -1 -: WORD_SIZE] = ((fault_detected[c] && proxy_map[c][r])) ? proxy_stalled_top_in[c] : pe_bottom_out[c][((r+1)*WORD_SIZE)-1 -: WORD_SIZE];
                 wire [WORD_SIZE-1:0] selected_bottom_out;
                 assign selected_bottom_out = ver_interconnect[VERTICAL_SIGNAL_OFFSET -1 -: WORD_SIZE];
 
-                wire [WORD_SIZE-1:0] proxy_stalled_left_in;
                 wire [WORD_SIZE-1:0] pe_right_out;
-                vDFF #(
-                    .WORD_SIZE(WORD_SIZE)
-                ) proxy_right_out_ff (
-                    .clk(clk && fault_detected[c] && proxy_map[c][r]),
-                    .D(left_in_bus[(r+1) * WORD_SIZE -1 -: WORD_SIZE]),
-                    .Q(proxy_stalled_left_in),
-                    .shift_en(1'b0)
-                );
-                assign hor_interconnect[HORIZONTAL_SIGNAL_OFFSET -1 -: WORD_SIZE]= ((fault_detected[c] && proxy_map[c][r])) ? proxy_stalled_left_in : pe_right_out;
+                // wire [WORD_SIZE-1:0] proxy_stalled_left_in;
+                // vDFF #(
+                //     .WORD_SIZE(WORD_SIZE)
+                // ) proxy_right_out_ff (
+                //     .clk(clk && fault_detected[c] && proxy_map[c][r]),
+                //     .D(left_in_bus[(r+1) * WORD_SIZE -1 -: WORD_SIZE]),
+                //     .Q(proxy_stalled_left_in),
+                //     .shift_en(1'b0)
+                // );
+                assign hor_interconnect[HORIZONTAL_SIGNAL_OFFSET -1 -: WORD_SIZE]= ((fault_detected[c] && proxy_map[c][r])) ? proxy_stalled_right_out[c] : pe_right_out;
 
 
                 traditional_mac_stw #(
@@ -457,33 +505,32 @@ module stw_wproxy_systolic
                 wire sel;
                 assign sel = fault_detected[c] && proxy_map[c][r];
 
-                // wire [WORD_SIZE-1:0] pe_bottom_out;
-                wire [WORD_SIZE-1:0] proxy_stalled_top_in;
-                vDFF #(
-                    .WORD_SIZE(WORD_SIZE)
-                ) proxy_bottom_out_ff (
-                    .clk(clk && fault_detected[c] && proxy_map[c][r]),
-                    .D(top_in_bus[(c+1) * WORD_SIZE - 1 -: WORD_SIZE]),
-                    .Q(proxy_stalled_top_in),
-                    .shift_en(1'b1)
-                );
+                // wire [WORD_SIZE-1:0] proxy_stalled_top_in;
+                // vDFF #(
+                //     .WORD_SIZE(WORD_SIZE)
+                // ) proxy_bottom_out_ff (
+                //     .clk(clk && fault_detected[c] && proxy_map[c][r]),
+                //     .D(top_in_bus[(c+1) * WORD_SIZE - 1 -: WORD_SIZE]),
+                //     .Q(proxy_stalled_top_in),
+                //     .shift_en(1'b1)
+                // );
                
-                assign ver_interconnect[VERTICAL_SIGNAL_OFFSET -1 -: WORD_SIZE] = ((fault_detected[c] && proxy_map[c][r])) ? proxy_stalled_top_in : pe_bottom_out[c][((r+1)*WORD_SIZE)-1 -: WORD_SIZE];
+                assign ver_interconnect[VERTICAL_SIGNAL_OFFSET -1 -: WORD_SIZE] = ((fault_detected[c] && proxy_map[c][r])) ? proxy_stalled_top_in[c] : pe_bottom_out[c][((r+1)*WORD_SIZE)-1 -: WORD_SIZE];
 
                 wire [WORD_SIZE-1:0] selected_bottom_out;
                 assign selected_bottom_out = ver_interconnect[VERTICAL_SIGNAL_OFFSET -1 -: WORD_SIZE];
 
-                wire [WORD_SIZE-1:0] proxy_stalled_left_in;
                 wire [WORD_SIZE-1:0] pe_right_out;
-                vDFF #(
-                    .WORD_SIZE(WORD_SIZE)
-                ) proxy_right_out_ff (
-                    .clk(clk && fault_detected[c] && proxy_map[c][r]),
-                    .D(hor_interconnect[LEFT_PEER_OFFSET - 1 -: WORD_SIZE]),
-                    .Q(proxy_stalled_left_in),
-                    .shift_en(1'b0)
-                );
-                assign hor_interconnect[HORIZONTAL_SIGNAL_OFFSET -1 -: WORD_SIZE]= ((fault_detected[c] && proxy_map[c][r])) ? proxy_stalled_left_in : pe_right_out;
+                // wire [WORD_SIZE-1:0] proxy_stalled_left_in;
+                // vDFF #(
+                //     .WORD_SIZE(WORD_SIZE)
+                // ) proxy_right_out_ff (
+                //     .clk(clk && fault_detected[c] && proxy_map[c][r]),
+                //     .D(hor_interconnect[LEFT_PEER_OFFSET - 1 -: WORD_SIZE]),
+                //     .Q(proxy_stalled_left_in),
+                //     .shift_en(1'b0)
+                // );
+                assign hor_interconnect[HORIZONTAL_SIGNAL_OFFSET -1 -: WORD_SIZE]= ((fault_detected[c] && proxy_map[c][r])) ? proxy_stalled_right_out[c] : pe_right_out;
 
                 traditional_mac_stw #(
                     .WORD_SIZE(WORD_SIZE)
@@ -538,33 +585,32 @@ module stw_wproxy_systolic
                 wire [WORD_SIZE-1:0] selected_left_in;
                 assign selected_left_in = (fault_detected[c] && proxy_map[c][r]) ? rcm_left_in[c] : hor_interconnect[LEFT_PEER_OFFSET - 1 -: WORD_SIZE];
                 
-                // wire [WORD_SIZE-1:0] pe_bottom_out;
-                wire [WORD_SIZE-1:0] proxy_stalled_top_in;
-                vDFF #(
-                    .WORD_SIZE(WORD_SIZE)
-                ) proxy_bottom_out_ff (
-                    .clk(clk && fault_detected[c] && proxy_map[c][r]),
-                    .D(ver_interconnect[TOP_PEER_OFFSET -1 -: WORD_SIZE]),
-                    .Q(proxy_stalled_top_in),
-                    .shift_en(1'b1)
-                );
+                // wire [WORD_SIZE-1:0] proxy_stalled_top_in;
+                // vDFF #(
+                //     .WORD_SIZE(WORD_SIZE)
+                // ) proxy_bottom_out_ff (
+                //     .clk(clk && fault_detected[c] && proxy_map[c][r]),
+                //     .D(ver_interconnect[TOP_PEER_OFFSET -1 -: WORD_SIZE]),
+                //     .Q(proxy_stalled_top_in),
+                //     .shift_en(1'b1)
+                // );
               
-                assign ver_interconnect[VERTICAL_SIGNAL_OFFSET -1 -: WORD_SIZE] = ((fault_detected[c] && proxy_map[c][r])) ? proxy_stalled_top_in : pe_bottom_out[c][((r+1)*WORD_SIZE)-1 -: WORD_SIZE];
+                assign ver_interconnect[VERTICAL_SIGNAL_OFFSET -1 -: WORD_SIZE] = ((fault_detected[c] && proxy_map[c][r])) ? proxy_stalled_top_in[c] : pe_bottom_out[c][((r+1)*WORD_SIZE)-1 -: WORD_SIZE];
 
                 wire [WORD_SIZE-1:0] selected_bottom_out;
                 assign selected_bottom_out = ver_interconnect[VERTICAL_SIGNAL_OFFSET -1 -: WORD_SIZE];
 
-                wire [WORD_SIZE-1:0] proxy_stalled_left_in;
+                // wire [WORD_SIZE-1:0] proxy_stalled_left_in;
                 wire [WORD_SIZE-1:0] pe_right_out;
-                vDFF #(
-                    .WORD_SIZE(WORD_SIZE)
-                ) proxy_right_out_ff (
-                    .clk(clk && fault_detected[c] && proxy_map[c][r]),
-                    .D(hor_interconnect[LEFT_PEER_OFFSET - 1 -: WORD_SIZE]),
-                    .Q(proxy_stalled_left_in),
-                    .shift_en(1'b0)
-                );
-                assign hor_interconnect[HORIZONTAL_SIGNAL_OFFSET -1 -: WORD_SIZE]= ((fault_detected[c] && proxy_map[c][r])) ? proxy_stalled_left_in : pe_right_out;
+                // vDFF #(
+                //     .WORD_SIZE(WORD_SIZE)
+                // ) proxy_right_out_ff (
+                //     .clk(clk && fault_detected[c] && proxy_map[c][r]),
+                //     .D(hor_interconnect[LEFT_PEER_OFFSET - 1 -: WORD_SIZE]),
+                //     .Q(proxy_stalled_left_in),
+                //     .shift_en(1'b0)
+                // );
+                assign hor_interconnect[HORIZONTAL_SIGNAL_OFFSET -1 -: WORD_SIZE] = ((fault_detected[c] && proxy_map[c][r])) ? proxy_stalled_right_out[c] : pe_right_out;
 
                 traditional_mac_stw #(
                     .WORD_SIZE(WORD_SIZE)

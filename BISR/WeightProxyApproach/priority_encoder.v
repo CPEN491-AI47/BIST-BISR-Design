@@ -12,37 +12,34 @@ module priority_encoder
     input rst;
     input [INPUT_WIDTH-1:0] data_in;
     output reg [NUM_ENCODED_BITS-1:0] encoded_out;
-    reg break = 0;
+    // reg break_loop = 0;
 
-    // integer i;
     // always @(*) begin
-    //     if(rst) begin
-    //         break = 1'b0;
-    //         encoded_out = 'x;
-    //     end
-    //     else begin
-    //         for(i = 0; i < INPUT_WIDTH; i=i+1) begin   //Priority LSB
-    //             if((data_in[i] == ENCODED_VAL) && !break) begin   //Find idx of 1st ZERO
-    //                 encoded_out = i;
-    //                 break = 1'b1;
-    //             end
-    //             else
-    //                 break = 1'b0;
-    //         end
-    //     end
-    // end
+        // encoded_out = 'b0;
+//    genvar i;
+//    generate
+//         for(i = 0; i < INPUT_WIDTH; i=i+1) begin    //Priority LSB
+//             always @(*) begin
+//                 if((data_in[i] == ENCODED_VAL)) begin   //Find idx of 1st ZERO
+//                     encoded_out = i;
+//                     // break_loop = 1'b1;
+//                 end
+//                 // else
+//                 //     encoded_out = 'b0;
+                
+//             end
+//         end
+//     // end
 
-    genvar i;
-    generate
-        for(i = 0; i < INPUT_WIDTH; i=i+1) begin   //Priority LSB
-            always @(*) begin
-                if((data_in[i] == ENCODED_VAL)) begin   //Find idx of 1st ZERO
-                    encoded_out = i;
-                    // break = 1'b1;
-                end
-                // break = 1'b0;
+//    endgenerate
+    reg [NUM_ENCODED_BITS:0] i;
+   always @(*) begin
+        encoded_out = 'bx;
+        for(i = 0; i < INPUT_WIDTH; i=i+1) begin
+            if((data_in[i] == ENCODED_VAL)) begin   //Find idx of 1st ZERO
+                encoded_out = i;
+                // break_loop = 1'b1;
             end
         end
-
-    endgenerate
+   end
 endmodule

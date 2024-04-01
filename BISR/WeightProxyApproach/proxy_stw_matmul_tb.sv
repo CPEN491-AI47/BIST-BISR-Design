@@ -92,14 +92,34 @@ module stw_matmul_tb();
     logic [`ROWS * `WORD_SIZE - 1: 0] right_out_bus;
     logic [`COLS * `WORD_SIZE - 1: 0] bottom_out_bus;
 
-    // traditional_systolic #(`ROWS, `COLS, `WORD_SIZE) systolic_dut(
+    
+    logic [`COLS-1:0] proxy_out_valid_bus;
+    logic [(`COLS*`WORD_SIZE)-1: 0] proxy_output_bus;
+
+    // stw_wproxy_systolic #(`ROWS, `COLS, `WORD_SIZE) stw_mac_dut (
     //     .clk(clk),
     //     .rst(rst),
     //     .ctl_stat_bit_in(ctl_stat_bit_in), 
     //     .ctl_dummy_fsm_op2_select_in(set_stationary),
     //     .ctl_dummy_fsm_out_select_in(ctl_dummy_fsm_out_select_in),
+
     //     `ifdef ENABLE_FI
     //         .fault_inject_bus(fault_inject_bus),
+    //     `endif
+
+    //     `ifdef ENABLE_STW
+    //         .STW_test_load_en(STW_test_load_en),
+    //         .STW_mult_op1(STW_mult_op1),
+    //         .STW_mult_op2(STW_mult_op2),
+    //         .STW_add_op(STW_add_op),
+    //         .STW_expected(STW_expected),
+    //         .STW_start(STW_start),
+    //         .STW_complete_out(STW_complete),
+    //         .STW_result_mat(STW_result_mat),
+    //     `endif
+    //     `ifdef ENABLE_WPROXY
+    //         .proxy_output_bus(proxy_output_bus),
+    //         .proxy_out_valid_bus(proxy_out_valid_bus),
     //     `endif
     //     .left_in_bus(left_in_bus),
     //     .top_in_bus(top_in_bus),
@@ -107,41 +127,9 @@ module stw_matmul_tb();
     //     .right_out_bus(right_out_bus)
     // );
 
-    logic [`COLS-1:0] proxy_out_valid_bus;
-    logic [(`COLS*`WORD_SIZE)-1: 0] proxy_output_bus;
-
-    stw_wproxy_systolic #(`ROWS, `COLS, `WORD_SIZE) stw_mac_dut (
-        .clk(clk),
-        .rst(rst),
-        .ctl_stat_bit_in(ctl_stat_bit_in), 
-        .ctl_dummy_fsm_op2_select_in(set_stationary),
-        .ctl_dummy_fsm_out_select_in(ctl_dummy_fsm_out_select_in),
-
-        `ifdef ENABLE_FI
-            .fault_inject_bus(fault_inject_bus),
-        `endif
-
-        `ifdef ENABLE_STW
-            .STW_test_load_en(STW_test_load_en),
-            .STW_mult_op1(STW_mult_op1),
-            .STW_mult_op2(STW_mult_op2),
-            .STW_add_op(STW_add_op),
-            .STW_expected(STW_expected),
-            .STW_start(STW_start),
-            .STW_complete_out(STW_complete),
-            .STW_result_mat(STW_result_mat),
-        `endif
-        `ifdef ENABLE_WPROXY
-            .proxy_output_bus(proxy_output_bus),
-            .proxy_out_valid_bus(proxy_out_valid_bus),
-        `endif
-        .left_in_bus(left_in_bus),
-        .top_in_bus(top_in_bus),
-        .bottom_out_bus(bottom_out_bus),
-        .right_out_bus(right_out_bus)
-    );
-
     always #5 clk = ~clk;
+
+    logic [`WORD_SIZE - 1:0] output_matrix[`ROWS][`COLS];
 
     //Inject Faults Randomly/Manually in MAC unit 
     task fault_injection;
@@ -164,40 +152,59 @@ module stw_matmul_tb();
         `endif
     endtask 
 
-    logic[`COLS * `WORD_SIZE-1:0] matmul_output;
-    logic [`COLS-1:0] output_col_valid;
-    logic start_fsm;
-    logic start_matmul;
+    // logic[`COLS * `WORD_SIZE-1:0] matmul_output;
+    // logic [`COLS-1:0] output_col_valid;
+    // logic start_fsm;
+    // logic start_matmul;
 
-    systolic_matmul_fsm matmul_dut(
+    // systolic_matmul_fsm matmul_dut(
+    //     .clk(clk),
+    //     .rst(rst),
+    //     .top_matrix(top_matrix),
+    //     .left_matrix(left_matrix),
+    //     .start_fsm(start_fsm),
+    //     .start_matmul(start_matmul),
+    //     .set_stationary(set_stationary),
+    //     .fsm_out_select_in(ctl_dummy_fsm_out_select_in),
+    //     .stat_bit_in(ctl_stat_bit_in),
+    //     .top_in_bus(top_in_bus),
+    //     .curr_cycle_left_in(left_in_bus),
+    //     .bottom_out(bottom_out_bus),
+    //     .matmul_output(matmul_output),
+    //     .output_col_valid(output_col_valid)
+    // );
+
+
+    // matmul_output_control matmul_out_dut(
+    //     .clk(clk),
+    //     .rst(rst),
+    //     .matmul_fsm_output(bottom_out_bus),
+    //     `ifdef ENABLE_WPROXY
+    //         .proxy_output_bus(proxy_output_bus),
+    //         .proxy_out_valid_bus(proxy_out_valid_bus),
+    //     `endif
+    //     .matmul_output_valid(output_col_valid),
+    //     .output_matrix(output_matrix)
+    // );
+
+    
+    logic matmul_output_done, matmul_in_progress;
+
+    logic start_matmul, start_fsm;
+
+    bisr_systolic_top #(`ROWS, `COLS, `WORD_SIZE) systolic_dut (
         .clk(clk),
         .rst(rst),
         .top_matrix(top_matrix),
         .left_matrix(left_matrix),
+        .inputs_rdy(1'b1),
+
         .start_fsm(start_fsm),
         .start_matmul(start_matmul),
-        .set_stationary(set_stationary),
-        .fsm_out_select_in(ctl_dummy_fsm_out_select_in),
-        .stat_bit_in(ctl_stat_bit_in),
-        .top_in_bus(top_in_bus),
-        .curr_cycle_left_in(left_in_bus),
-        .bottom_out(bottom_out_bus),
-        .matmul_output(matmul_output),
-        .output_col_valid(output_col_valid)
-    );
 
-    logic [`WORD_SIZE - 1:0] output_matrix[`ROWS][`COLS];
-
-    matmul_output_control matmul_out_dut(
-        .clk(clk),
-        .rst(rst),
-        .matmul_fsm_output(bottom_out_bus),
-        `ifdef ENABLE_WPROXY
-            .proxy_output_bus(proxy_output_bus),
-            .proxy_out_valid_bus(proxy_out_valid_bus),
-        `endif
-        .matmul_output_valid(output_col_valid),
-        .output_matrix(output_matrix)
+        .output_matrix(output_matrix),
+        .matmul_output_done(matmul_output_done),
+        .matmul_in_progress(matmul_in_progress)
     );
 
     localparam NUM_FAULTS = 4;
@@ -214,12 +221,12 @@ module stw_matmul_tb();
         @(negedge clk);
         
         `ifdef ENABLE_FI
-            for(integer f = 0; f < NUM_FAULTS; f++) begin
-                fi_row = fi_row_arr[f];
-                fi_col = fi_col_arr[f];
-                fault_inject_bus[(fi_col*`ROWS+fi_row)*2 +: 2] = 2'b01;
-                $display("Injected fault at col %0d, row %0d", fi_col, fi_row);
-            end
+            // for(integer f = 0; f < NUM_FAULTS; f++) begin
+            //     fi_row = fi_row_arr[f];
+            //     fi_col = fi_col_arr[f];
+            //     fault_inject_bus[(fi_col*`ROWS+fi_row)*2 +: 2] = 2'b11;
+            //     $display("Injected fault at col %0d, row %0d", fi_col, fi_row);
+            // end
 
             // fi_row = 1;
             // fi_col = 1;
@@ -251,8 +258,8 @@ module stw_matmul_tb();
             STW_start = 0;
             STW_mult_op1 = `WORD_SIZE'd4;
             STW_mult_op2 = `WORD_SIZE'd3;
-            STW_add_op = `WORD_SIZE'd0;
-            STW_expected = `WORD_SIZE'd12;
+            STW_add_op = `WORD_SIZE'd1;
+            STW_expected = `WORD_SIZE'd13;
             @(posedge clk);
             @(negedge clk);
             STW_test_load_en = 0;
@@ -260,7 +267,7 @@ module stw_matmul_tb();
             @(posedge clk);
             @(negedge clk);
             STW_start = 0;
-            #50;
+            // #50;
             
             $display("Stop-the-World Diagnosis Before: (0 = Fault Found, 1 = No Fault)");
             for(integer r = 0; r < `ROWS; r++) begin
@@ -269,7 +276,7 @@ module stw_matmul_tb();
                 end
                 $write("\n");
             end
-        #30;
+        // #30;
         `endif
         start_matmul = 1;
         start_fsm = 1;
@@ -291,12 +298,12 @@ module stw_matmul_tb();
             $write("\n");
         end
         `ifdef ENABLE_STW
-            STW_test_load_en = 1;
-            STW_start = 0;
-            STW_mult_op1 = `WORD_SIZE'd4;
-            STW_mult_op2 = `WORD_SIZE'd3;
-            STW_add_op = `WORD_SIZE'd0;
-            STW_expected = `WORD_SIZE'd12;
+            // STW_test_load_en = 1;
+            // STW_start = 0;
+            // STW_mult_op1 = `WORD_SIZE'd4;
+            // STW_mult_op2 = `WORD_SIZE'd3;
+            // STW_add_op = `WORD_SIZE'd0;
+            // STW_expected = `WORD_SIZE'd12;
             @(posedge clk);
             @(negedge clk);
             STW_test_load_en = 0;
