@@ -5,26 +5,19 @@ module recompute_unit #(
 )(
     input clk,
     input rst,
-    input [ROWS-1:0] faultyRowIn,
-    input [COLS-1:0] faultyColIn,
+    input start,
     input [WORD_SIZE-1:0] Weight,
     input [WORD_SIZE-1:0] LeftIn,
 
-    output reg [WORD_SIZE-1:0] BottomOut,
-    output reg [ROWS-1:0] faultyRowOut,
-    output reg [COLS-1:0] faultyColOut
+    output reg [WORD_SIZE-1:0] BottomOut
 );
 
     always @(posedge clk, posedge rst) begin
-        if(rst) begin
+        if(rst | (!start)) begin
             BottomOut   <= 0;
-            faultyRowOut <= 'dx;
-            faultyColOut <= 'dx;
         end
         else begin
             BottomOut   <= Weight*LeftIn;
-            faultyRowOut <= faultyRowIn;
-            faultyColOut <= faultyColIn;
         end   
     end
     
