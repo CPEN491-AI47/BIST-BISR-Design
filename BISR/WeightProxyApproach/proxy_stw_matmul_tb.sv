@@ -14,10 +14,15 @@ module stw_matmul_tb();
     //                               [1 8 9 7]
     //                               [6 7 1 8]
     logic [`ROWS * `COLS * `WORD_SIZE - 1 : 0] top_matrix;  // = {`WORD_SIZE'd0, `WORD_SIZE'd1, `WORD_SIZE'd7, `WORD_SIZE'd6, `WORD_SIZE'd3, `WORD_SIZE'd9, `WORD_SIZE'd21, `WORD_SIZE'd1, `WORD_SIZE'd2, `WORD_SIZE'd6, `WORD_SIZE'd0, `WORD_SIZE'd4, `WORD_SIZE'd1, `WORD_SIZE'd3, `WORD_SIZE'd2, `WORD_SIZE'd1};
-    logic [`WORD_SIZE-1:0]  top_matrix_2d[`ROWS][`COLS] = '{'{`WORD_SIZE'd1, `WORD_SIZE'd0, `WORD_SIZE'd0, `WORD_SIZE'd1},
+    logic [`WORD_SIZE-1:0]  top_matrix_2d[`ROWS][`COLS] = '{'{`WORD_SIZE'd5, `WORD_SIZE'd0, `WORD_SIZE'd0, `WORD_SIZE'd1},
                                                      '{`WORD_SIZE'd4, `WORD_SIZE'd8, `WORD_SIZE'd6, `WORD_SIZE'd2},
-                                                     '{`WORD_SIZE'd0, `WORD_SIZE'd21, `WORD_SIZE'd9, `WORD_SIZE'd3},
-                                                     '{`WORD_SIZE'd6, `WORD_SIZE'd7, `WORD_SIZE'd1, `WORD_SIZE'd0}};
+                                                     '{`WORD_SIZE'd1, `WORD_SIZE'd21, `WORD_SIZE'd9, `WORD_SIZE'd3},
+                                                     '{`WORD_SIZE'd6, `WORD_SIZE'd7, `WORD_SIZE'd1, `WORD_SIZE'd1}};
+
+    logic [`WORD_SIZE:0] left_matrix[`ROWS][`COLS] = '{'{`WORD_SIZE'd9, `WORD_SIZE'd4, `WORD_SIZE'd2, `WORD_SIZE'd1},   
+                                                     '{`WORD_SIZE'd5, `WORD_SIZE'd12, `WORD_SIZE'd3, `WORD_SIZE'd2},
+                                                     '{`WORD_SIZE'd6, `WORD_SIZE'd8, `WORD_SIZE'd7, `WORD_SIZE'd3},
+                                                     '{`WORD_SIZE'd7, `WORD_SIZE'd3, `WORD_SIZE'd8, `WORD_SIZE'd4}};
     
     //Set flatten top_matrix_2d into proper 1d format for matmul_fsm
     initial begin
@@ -43,10 +48,7 @@ module stw_matmul_tb();
     //                                                  '{`WORD_SIZE'd6, `WORD_SIZE'd8, `WORD_SIZE'd7}};
 
 
-    logic [`WORD_SIZE:0] left_matrix[`ROWS][`COLS] = '{'{`WORD_SIZE'd9, `WORD_SIZE'd4, `WORD_SIZE'd2, `WORD_SIZE'd1},
-                                                     '{`WORD_SIZE'd5, `WORD_SIZE'd12, `WORD_SIZE'd3, `WORD_SIZE'd2},
-                                                     '{`WORD_SIZE'd6, `WORD_SIZE'd8, `WORD_SIZE'd7, `WORD_SIZE'd3},
-                                                     '{`WORD_SIZE'd7, `WORD_SIZE'd3, `WORD_SIZE'd8, `WORD_SIZE'd4}};
+    
 
     //2x2 Example
     // logic [`WORD_SIZE:0] left_matrix[`ROWS][`COLS] = '{'{`WORD_SIZE'd2, `WORD_SIZE'd1},
@@ -189,8 +191,15 @@ module stw_matmul_tb();
 
     
     logic matmul_output_done, matmul_in_progress;
+    logic start_matmul, start_fsm, fsm_rdy;
 
-    logic start_matmul, start_fsm;
+    logic [31:0] mem_addr;
+    logic mem_wr_en;
+    logic [`MEM_PORT_WIDTH-1:0] mem_rd_data;
+
+    logic [31:0] output_mem_addr;
+    logic output_mem_wr_en;
+    logic [`MEM_PORT_WIDTH-1:0] output_mem_wr_data;
 
     bisr_systolic_top #(`ROWS, `COLS, `WORD_SIZE) systolic_dut (
         .clk(clk),
@@ -201,10 +210,36 @@ module stw_matmul_tb();
 
         .start_fsm(start_fsm),
         .start_matmul(start_matmul),
+        .fsm_rdy(fsm_rdy),
+
+        .STW_complete(STW_complete),
+        .STW_result_mat(STW_result_mat),
 
         .output_matrix(output_matrix),
-        .matmul_output_done(matmul_output_done),
-        .matmul_in_progress(matmul_in_progress)
+
+        .mem_rd_data(mem_rd_data),
+        .mem_addr(mem_addr),
+        .mem_wr_en(mem_wr_en),
+
+        .output_mem_wr_data(output_mem_wr_data),
+        .output_mem_addr(output_mem_addr),
+        .output_mem_wr_en(output_mem_wr_en)
+    );
+
+    bram_mat input_bram (
+        .clk(clk),
+        .we(mem_wr_en),
+        .addr(mem_addr),
+        .di(),
+        .dout(mem_rd_data)
+    );
+
+    bram_mat output_bram (
+        .clk(clk),
+        .we(output_mem_wr_en),
+        .addr(output_mem_addr),
+        .di(output_mem_wr_data),
+        .dout()
     );
 
     localparam NUM_FAULTS = 4;
@@ -254,20 +289,20 @@ module stw_matmul_tb();
         end
 
         `ifdef ENABLE_STW
-            STW_test_load_en = 1;
-            STW_start = 0;
-            STW_mult_op1 = `WORD_SIZE'd4;
-            STW_mult_op2 = `WORD_SIZE'd3;
-            STW_add_op = `WORD_SIZE'd1;
-            STW_expected = `WORD_SIZE'd13;
-            @(posedge clk);
-            @(negedge clk);
-            STW_test_load_en = 0;
-            STW_start = 1;
-            @(posedge clk);
-            @(negedge clk);
-            STW_start = 0;
-            // #50;
+            // STW_test_load_en = 1;
+            // STW_start = 0;
+            // STW_mult_op1 = `WORD_SIZE'd4;
+            // STW_mult_op2 = `WORD_SIZE'd3;
+            // STW_add_op = `WORD_SIZE'd1;
+            // STW_expected = `WORD_SIZE'd13;
+            // @(posedge clk);
+            // @(negedge clk);
+            // STW_test_load_en = 0;
+            // STW_start = 1;
+            // @(posedge clk);
+            // @(negedge clk);
+            // STW_start = 0;
+            #50;
             
             $display("Stop-the-World Diagnosis Before: (0 = Fault Found, 1 = No Fault)");
             for(integer r = 0; r < `ROWS; r++) begin
@@ -280,7 +315,9 @@ module stw_matmul_tb();
         `endif
         start_matmul = 1;
         start_fsm = 1;
-        #300
+        #50
+        start_fsm = 0;
+        #850
 
         $display("Expected Output: left_matrix * top_matrix");
         for(integer r = 0; r < `ROWS; r++) begin
@@ -293,7 +330,7 @@ module stw_matmul_tb();
         $display("Actual Output: left_matrix * top_matrix");
         for(integer r = 0; r < `ROWS; r++) begin
            for(integer c = 0; c < `COLS; c++) begin
-                $write("%d ", output_matrix[r][c]);
+                $write("%x ", output_matrix[r][c]);
             end
             $write("\n");
         end
@@ -304,13 +341,13 @@ module stw_matmul_tb();
             // STW_mult_op2 = `WORD_SIZE'd3;
             // STW_add_op = `WORD_SIZE'd0;
             // STW_expected = `WORD_SIZE'd12;
-            @(posedge clk);
-            @(negedge clk);
-            STW_test_load_en = 0;
-            STW_start = 1;
-            @(posedge clk);
-            @(negedge clk);
-            STW_start = 0;
+            // @(posedge clk);
+            // @(negedge clk);
+            // STW_test_load_en = 0;
+            // STW_start = 1;
+            // @(posedge clk);
+            // @(negedge clk);
+            // STW_start = 0;
             #50;
 
             $display("Stop-the-World Diagnosis After: (0 = Fault Found, 1 = No Fault)");
