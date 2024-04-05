@@ -33,7 +33,7 @@ module priority_encoder
 
 //    endgenerate
     reg [NUM_ENCODED_BITS:0] i;
-   always @(*) begin
+    always @(*) begin
         encoded_out = 'bx;
         for(i = 0; i < INPUT_WIDTH; i=i+1) begin
             if((data_in[i] == ENCODED_VAL)) begin   //Find idx of 1st ZERO

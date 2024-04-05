@@ -12,6 +12,7 @@ module proxy_controller
 ) (
     clk,
     rst,
+    stall,
     set_stationary_mode,
     matmul_mode,
     STW_complete,
@@ -33,12 +34,14 @@ module proxy_controller
     proxy_orig_left_in,   //Original left_in for PE selected as proxy
     proxy_stalled_top_in,
     proxy_stalled_right_out,
-    proxy_out_valid
+    proxy_out_valid,
+    proxy_map_done
 );
 
     localparam ROW_WIDTH = $clog2(ROWS);
 
     input clk, rst;
+    input stall;
     input set_stationary_mode;
     input matmul_mode;
     input STW_complete;
@@ -47,6 +50,8 @@ module proxy_controller
     input [WORD_SIZE-1:0] fpe_in_weight;
     input [WORD_SIZE-1:0] fpe_in_top;
     input [WORD_SIZE-1:0] fpe_in_col_output;
+
+    input proxy_map_done;
 
     output [ROW_WIDTH-1:0] fpe_idx_sel;
     output [ROWS-1:0] proxy_en;
@@ -84,9 +89,9 @@ module proxy_controller
             proxy_left_in <= 'b0;
             proxy_out_valid <= 'b0;
         end
-        else begin
+        else if(!stall) begin
             proxy_left_in <= rcm_left_in;
-            proxy_out_valid <= (proxy_left_in != 'b0);
+            proxy_out_valid <= ((proxy_left_in != 'b0) && proxy_map_done);
         end
     end
 
@@ -102,12 +107,13 @@ module proxy_controller
         else begin
             case(rcm_state)
                 `SET_PROXY: begin
-                    if(fault_detected) begin
+                    if(proxy_map_done && fault_detected) begin
                         fpe_weight <= fpe_in_weight;
                         proxy_settings <= {3'b001};   //For loading stationary: !fsm_out_select_in && fsm_op2_select_in
                         load_proxy <= 1'b1;
                         proxy_matmul <= 1'b0;
-                        rcm_state <= `SET_PROXY2;
+                        if(!stall)
+                            rcm_state <= `SET_PROXY2;
                     end
                     else begin
                         load_proxy <= 1'b0;
@@ -134,13 +140,15 @@ module proxy_controller
     //Keep timing of right_out & bottom_out of proxy PE
     output [WORD_SIZE-1:0] proxy_stalled_top_in;
     input [WORD_SIZE-1:0] proxy_top_in;
+
     vDFF #(
         .WORD_SIZE(WORD_SIZE)
     ) proxy_bottom_out_ff (
         .clk(clk),
         .D(proxy_top_in),
         .Q(proxy_stalled_top_in),
-        .shift_en(1'b1)
+        .shift_en(1'b1),
+        .stall(stall)
     );
 
     output [WORD_SIZE-1:0] proxy_stalled_right_out;
@@ -151,6 +159,7 @@ module proxy_controller
         .clk(clk),
         .D(proxy_orig_left_in),
         .Q(proxy_stalled_right_out),
-        .shift_en(1'b0)
+        .shift_en(1'b0),
+        .stall(stall)
     );
 endmodule

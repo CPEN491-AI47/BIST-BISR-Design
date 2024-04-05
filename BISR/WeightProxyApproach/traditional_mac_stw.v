@@ -9,7 +9,7 @@ module traditional_mac_stw
 )(
     clk,
     rst,
-    
+    stall,   //Do nothing this clk cycle if waiting for memory
     //Control Signals - Used for matmul op + setting stationary operand
     fsm_op2_select_in,  //For set stationary operands: set to 1, For matmul: set to 0
     fsm_out_select_in,  //Output accumulated sum (for IS/WS) or top_in (for OS)
@@ -48,6 +48,7 @@ module traditional_mac_stw
 
 input clk;
 input rst;
+input stall;
 
 input fsm_op2_select_in;
 input fsm_out_select_in;
@@ -212,17 +213,19 @@ assign add_op2_mux_out = (stat_bit_in == 1'b1) ? top_in_reg : accumulator_reg;
 
 always @(posedge clk, posedge rst)
 begin
-     if(rst == 1'b1)
-     begin
-        top_in_reg <= tie_low[WORD_SIZE - 1: 0]; 
-        left_in_reg <= tie_low[WORD_SIZE - 1: 0]; 
-     end
-     else
-     begin 
+    if(rst == 1'b1)
+    begin
+    top_in_reg <= tie_low[WORD_SIZE - 1: 0]; 
+    left_in_reg <= tie_low[WORD_SIZE - 1: 0]; 
+    end
+    else
+    begin 
 
 `ifdef ENABLE_WPROXY
-    left_in_reg <= left_in;
-    top_in_reg <= top_in;
+    if(!stall) begin
+        left_in_reg <= left_in;
+        top_in_reg <= top_in;
+    end
 `elsif ENABLE_STW   //If STW enabled, override left_in_reg, top_in_reg
     // stop updating the input registers while we run STW, this would allow us to continue execution with the last cycle's values.
     // This also requires that the inputs not change at the beginning of the SA.
@@ -246,17 +249,18 @@ begin
     end
     else
     begin
-        if (fsm_op2_select_in == 1'b1)
+        if (fsm_op2_select_in == 1'b1 && !stall)
         begin
             stationary_operand_reg <= top_in;
         end
 
 `ifdef ENABLE_STW
-        if (!stw_en) begin
+        if (!stw_en && !stall) begin
             accumulator_reg <= (STW_result_out == 0) ? top_in_reg : adder_out;
         end
 `else
-    accumulator_reg <= (STW_result_out == 0) ? top_in_reg : adder_out;
+    if(!stall)
+        accumulator_reg <= (STW_result_out == 0) ? top_in_reg : adder_out;
 `endif
     end
 end
