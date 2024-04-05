@@ -25,6 +25,8 @@ module systolic_matmul_fsm
     stw_en,
     fsm_done,
     fsm_rdy,
+    wr_output_rdy,
+    wr_output_done,
     STW_complete,
 
     set_stat_start,
@@ -56,6 +58,8 @@ module systolic_matmul_fsm
     
 
     input start_fsm;
+    input wr_output_rdy;
+    input wr_output_done;
     input start_matmul;
     input STW_complete;
     output reg stw_en;
@@ -104,12 +108,14 @@ module systolic_matmul_fsm
 
     assign matmul_output = bottom_out;   //Matrix multiplication output = bottom_out of systolic: Which part of bottom_out are valid outputs will be set by output_col_valid
 
+    logic set_stat_done;
     //Control flow for setting stationary regs + Producing matrix multiplication outputs from systolic
     always_ff @(posedge clk) begin
         if(rst) begin
             fsm_done <= 0;
             fsm_rdy <= 1;
             set_stat_start <= 0;
+            set_stat_done <= 0;
             stall <= 0;
             state <= INIT;
         end
@@ -126,13 +132,15 @@ module systolic_matmul_fsm
                     curr_output_idx <= {($clog2(COLS)){1'b0}};
 
                     output_start <= 1'b0;
+                    set_stat_done <= 0;
 
                     stw_en <= 0;
                     fsm_done <= 0;
                     fsm_rdy <= 1;
 
-                    if(start_fsm) begin
+                    if(start_fsm && wr_output_rdy) begin
                         set_stat_start <= 1;
+                        
                         fsm_rdy <= 0;
                         state <= SET_STATIONARY;
                     end
@@ -167,24 +175,30 @@ module systolic_matmul_fsm
                         state <= READ_TOP_MAT;
                         
                         // top_in_bus = top_matrix[((stat_op_row-1'b1) * COLS) * WORD_SIZE +: (COLS * WORD_SIZE)];
-                        stat_op_row <= stat_op_row - 1'b1;
+                        // stat_op_row <= stat_op_row - 1'b1;
                     end
                     else begin
-                        stall <= 0;
-                        set_stat_start <= 0;
-                        //Set control signals for matmul operation
-                        set_stationary <= 1'b0;
-                        stat_bit_in <= 1'b1;
-                        fsm_out_select_in <= 1'b1;
+                        set_stat_done <= 1;
+                        mem_delay <= MEM_ACCESS_LATENCY-1;
+                        stall <= 1;
                         
-                        //No more inputs to top
-                        top_in_bus = {(COLS * WORD_SIZE){1'b0}};
+                        // stall <= 0;
+                        // set_stat_start <= 0;
+                        // //Set control signals for matmul operation
+                        // set_stationary <= 1'b0;
+                        // stat_bit_in <= 1'b1;
+                        // fsm_out_select_in <= 1'b1;
+                        
+                        // //No more inputs to top
+                        // top_in_bus = {(COLS * WORD_SIZE){1'b0}};
 
-                        //Setup idx for matmul operation
-                        matmul_cycle <= {($clog2(ROWS)+4){1'b0}};
+                        // //Setup idx for matmul operation
+                        // matmul_cycle <= {($clog2(ROWS)+4){1'b0}};
                         
-                        if(start_matmul)
-                            state <= RUN_STW1;
+                        // if(start_matmul)
+                        //     state <= RUN_STW1;
+
+                        state <= READ_TOP_MAT;
 
                     end
                 end
@@ -193,11 +207,31 @@ module systolic_matmul_fsm
                     
                     if((mem_delay) == 'd0) begin
                         stall <= 0;
-
+                        stat_op_row <= stat_op_row - 1'b1;
                         top_in_bus <= mem_rd_data;
-                        state <= SET_STATIONARY;
+                        
 
                         left_in_row <= 0;
+
+                        if(set_stat_done) begin
+                            stall <= 0;
+                            set_stat_start <= 0;
+                            //Set control signals for matmul operation
+                            set_stationary <= 1'b0;
+                            stat_bit_in <= 1'b1;
+                            fsm_out_select_in <= 1'b1;
+                            
+                            //No more inputs to top
+                            top_in_bus <= {(COLS * WORD_SIZE){1'b0}};
+
+                            //Setup idx for matmul operation
+                            matmul_cycle <= {($clog2(ROWS)+4){1'b0}};
+                            
+                            if(start_matmul)
+                                state <= RUN_STW1;
+                        end
+                        else
+                            state <= SET_STATIONARY;
                     end
                     else
                        mem_delay <= mem_delay-1'b1; 
@@ -222,7 +256,6 @@ module systolic_matmul_fsm
                     //         end
                     //         else begin
                     //             curr_cycle_left_in[(left_in_row * WORD_SIZE) +: WORD_SIZE] = left_matrix[matmul_cycle-left_in_row][left_in_row];   //Assuming NxN matrices
-
                            
                     //         end
                             
@@ -271,9 +304,12 @@ module systolic_matmul_fsm
 
                 FINISH: begin
                     fsm_done <= 1;
-                    fsm_rdy <= 1;
-                    output_start <= 1'b0;
-                    state <= INIT;
+                    if(wr_output_done) begin
+                        
+                        fsm_rdy <= 1;
+                        output_start <= 1'b0;
+                        state <= INIT;
+                    end
                 end
             endcase
         end

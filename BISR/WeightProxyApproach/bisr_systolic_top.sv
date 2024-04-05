@@ -24,8 +24,6 @@ module bisr_systolic_top
     
     //Top module outputs
     output_matrix,
-    matmul_output_done,
-    matmul_in_progress,
 
     //Addresses/Signals for read/write from Input RAM
     mem_rd_data,
@@ -44,9 +42,6 @@ module bisr_systolic_top
     input logic [WORD_SIZE:0] left_matrix[ROWS][COLS];
     
     input inputs_rdy;   //Input matrices in memory, matmul can begin anytime
-
-    output matmul_output_done;   //TODO: Signal that output matrix is ready for this batch of inputs
-    output matmul_in_progress;   //TODO: Signal that matmul happening w current inputs
 
     input logic start_fsm, start_matmul;
     output logic fsm_rdy;
@@ -112,6 +107,8 @@ module bisr_systolic_top
     input logic [`MEM_PORT_WIDTH-1:0] mem_rd_data;
     logic stall;
 
+    logic wr_output_rdy, wr_output_done;
+
     systolic_matmul_fsm #(
         .ROWS(ROWS),
         .COLS(COLS),
@@ -134,6 +131,8 @@ module bisr_systolic_top
         .stw_en(stw_en),
         .fsm_done(fsm_done),
         .fsm_rdy(fsm_rdy),
+        .wr_output_rdy(wr_output_rdy),
+        .wr_output_done(wr_output_done),
         .STW_complete(STW_complete),
 
         //Input: Bottom_out outputs from bottom of systolic @current clk cycle
@@ -161,6 +160,8 @@ module bisr_systolic_top
     output logic [31:0] output_mem_addr;
     output logic output_mem_wr_en;
     output logic [`MEM_PORT_WIDTH-1:0] output_mem_wr_data;
+    
+
     matmul_output_control #(
         .ROWS(ROWS),
         .COLS(COLS),
@@ -170,6 +171,7 @@ module bisr_systolic_top
         .clk(clk),
         .rst(rst),
         .stall(stall),
+        .fsm_rdy(fsm_rdy),
         .fsm_done(fsm_done),
         .matmul_fsm_output(matmul_output),
         `ifdef ENABLE_WPROXY
@@ -178,26 +180,28 @@ module bisr_systolic_top
         `endif
         .matmul_output_valid(output_col_valid),
         .output_matrix(output_matrix),
+        .wr_output_rdy(wr_output_rdy),
+        .wr_output_done(wr_output_done),
         .mem_addr(output_mem_addr),
         .mem_wr_en(output_mem_wr_en),
         .mem_data(output_mem_wr_data)
     );
 
 
-//    `ifdef ENABLE_FI
-//        localparam NUM_FAULTS = 4;
-//        logic [`ROWS-1:0] fi_row_arr[NUM_FAULTS] = {'d1, 'd2, 'd3, 'd0};
-//        logic [`COLS-1:0] fi_col_arr[NUM_FAULTS] = {'d0, 'd1, 'd2, 'd3};
+   `ifdef ENABLE_FI
+       localparam NUM_FAULTS = 4;
+       logic [`ROWS-1:0] fi_row_arr[NUM_FAULTS] = {'d1, 'd2, 'd3, 'd0};
+       logic [`COLS-1:0] fi_col_arr[NUM_FAULTS] = {'d0, 'd1, 'd2, 'd3};
    
-//        initial begin
-//            for(integer f = 0; f < NUM_FAULTS; f++) begin
-//                fi_row = fi_row_arr[f];
-//                fi_col = fi_col_arr[f];
-//                fault_inject_bus[(fi_col*`ROWS+fi_row)*2 +: 2] = 2'b11;
-//                $display("Injected fault at col %0d, row %0d", fi_col, fi_row);
-//            end
-//        end
-//    `endif
+       initial begin
+           for(integer f = 0; f < NUM_FAULTS; f++) begin
+               fi_row = fi_row_arr[f];
+               fi_col = fi_col_arr[f];
+               fault_inject_bus[(fi_col*`ROWS+fi_row)*2 +: 2] = 2'b11;
+               $display("Injected fault at col %0d, row %0d", fi_col, fi_row);
+           end
+       end
+   `endif
 
     
     stw_wproxy_systolic #(

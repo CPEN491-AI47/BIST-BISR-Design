@@ -216,8 +216,6 @@ module stw_matmul_tb();
         .STW_result_mat(STW_result_mat),
 
         .output_matrix(output_matrix),
-        .matmul_output_done(matmul_output_done),
-        .matmul_in_progress(matmul_in_progress),
 
         .mem_rd_data(mem_rd_data),
         .mem_addr(mem_addr),
@@ -319,7 +317,7 @@ module stw_matmul_tb();
         start_fsm = 1;
         #50
         start_fsm = 0;
-        #650
+        #850
 
         $display("Expected Output: left_matrix * top_matrix");
         for(integer r = 0; r < `ROWS; r++) begin
@@ -332,7 +330,7 @@ module stw_matmul_tb();
         $display("Actual Output: left_matrix * top_matrix");
         for(integer r = 0; r < `ROWS; r++) begin
            for(integer c = 0; c < `COLS; c++) begin
-                $write("%d ", output_matrix[r][c]);
+                $write("%x ", output_matrix[r][c]);
             end
             $write("\n");
         end

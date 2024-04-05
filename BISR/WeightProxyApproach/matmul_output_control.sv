@@ -16,12 +16,15 @@ module matmul_output_control
     clk,
     rst,
     stall,
+    fsm_rdy,
     fsm_done,
     matmul_fsm_output,
     matmul_output_valid,
     proxy_output_bus,
     proxy_out_valid_bus,
     output_matrix,
+    wr_output_rdy,
+    wr_output_done,
 
     //Signals for writing to memory
     mem_addr,
@@ -30,7 +33,7 @@ module matmul_output_control
 );
     localparam ADDR_WIDTH = $clog2(ROWS*COLS);
 
-    input clk, rst, stall, fsm_done;
+    input clk, rst, stall, fsm_done, fsm_rdy;
     input [COLS-1:0] matmul_output_valid;
     input [COLS-1:0] proxy_out_valid_bus;
     input logic [COLS * WORD_SIZE-1:0] matmul_fsm_output;
@@ -99,7 +102,8 @@ module matmul_output_control
 
             for(r = 0; r < ROWS; r=r+1) begin : write_total_out_genblk
                 always @(*) begin
-                    output_matrix[r][c1] = sa_output_matrix[r][c1] + proxy_output_matrix[r][c1];
+                    if(wr_en != 'b0)
+                        output_matrix[r][c1] = sa_output_matrix[r][c1] + proxy_output_matrix[r][c1];
                 end
             end
         end
@@ -132,7 +136,8 @@ module matmul_output_control
 
     //Write output matrix to memory row by row
     enum {IDLE, MEM_WR, MEM_WR_DELAY} mem_output_state;
-    logic [4:0] row_idx, col_idx;   //hardcoded for 4x4 matrix
+    logic [4:0] row_idx;   //hardcoded for 4x4 matrix
+    output logic wr_output_rdy, wr_output_done;
     
     output logic [31:0] mem_addr;
     output logic mem_wr_en;
@@ -143,18 +148,22 @@ module matmul_output_control
     always @(posedge clk) begin
         if(rst) begin
             row_idx <= 0;
+            wr_output_rdy <= 1;
+            wr_output_done <= 0;
             mem_output_state <= IDLE;
         end
         else begin
             case(mem_output_state)
                 IDLE: begin
                     row_idx <= 0;
-
-                    if(fsm_done)
+                    wr_output_rdy <= 1;
+                    wr_output_done <= 0;
+                    if(fsm_done && !fsm_rdy)
                         mem_output_state <= MEM_WR;
                 end
 
                 MEM_WR: begin
+                    wr_output_rdy <= 0;
                     if(row_idx < ROWS) begin
                         mem_addr <= `OUTPUT_MAT_BASE_ADDR + (row_idx * `MEM_ADDR_INCR);
                         mem_data <= output_mat_by_row[row_idx];
@@ -164,8 +173,10 @@ module matmul_output_control
 
                         mem_output_state <= MEM_WR_DELAY;
                     end
-                    else
+                    else begin
+                        wr_output_done <= 1;
                         mem_output_state <= IDLE;
+                    end
                 end
 
                 MEM_WR_DELAY: begin

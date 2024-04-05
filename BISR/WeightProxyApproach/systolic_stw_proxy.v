@@ -189,10 +189,10 @@ module stw_wproxy_systolic
                             set_proxy_en <= 1'b1;
                             proxy_state <= `PROXY_SET;
                         end
-                        else if (curr_stationary_row_idx == 'b0) begin
-                            //NOTE: Check if set_proxy_en still active for this last cycle
-                            proxy_state <= `PROXY_SET;
-                        end
+                        // else if (curr_stationary_row_idx == 'b0) begin
+                        //     //NOTE: Check if set_proxy_en still active for this last cycle
+                        //     proxy_state <= `PROXY_SET;
+                        // end
                         else begin
                             proxy_state <= `PROXY_TBD;
                         end
@@ -207,9 +207,9 @@ module stw_wproxy_systolic
                         else
                             mem_delay <= mem_delay-1'b1;
 
-                        if((curr_stationary_row_idx) == 'b0) begin   //This is last cycle of SET_STATIONARY
-                                proxy_state <= `PROXY_SET;
-                            end
+                        // if((curr_stationary_row_idx) == 'b0) begin   //This is last cycle of SET_STATIONARY
+                        //         proxy_state <= `PROXY_SET;
+                        //     end
                     end
 
                     `PROXY_SET: begin
