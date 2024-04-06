@@ -16,8 +16,8 @@ module systolic_matmul_fsm
     stall,
     
     //Input matrices
-    top_matrix,
-    left_matrix,
+    // top_matrix,
+    // left_matrix,
 
     //Start/done signals
     start_fsm,
@@ -72,8 +72,8 @@ module systolic_matmul_fsm
     output logic fsm_out_select_in;
     output logic stat_bit_in;
 
-    input [ROWS * COLS * WORD_SIZE - 1 : 0] top_matrix;
-    input logic [WORD_SIZE:0] left_matrix[ROWS][COLS];
+    // input [ROWS * COLS * WORD_SIZE - 1 : 0] top_matrix;
+    // input logic [WORD_SIZE:0] left_matrix[ROWS][COLS];
     output logic [COLS * WORD_SIZE - 1: 0] top_in_bus;
      
     //curr_cycle_left_in = left_in inputs to systolic for current clock cycle

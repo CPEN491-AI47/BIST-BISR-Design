@@ -9,12 +9,12 @@ module bisr_systolic_top
     //Inputs to top module
     clk,
     rst,
-    top_matrix,   //TODO: May need extra module to grab from RAM?
-    left_matrix,
+    // top_matrix,   //Refactored to grabbing inputs from RAM
+    // left_matrix,
     inputs_rdy,
 
-    start_fsm,   //TODO: Remove later, for testing
-    start_matmul,   //TODO: Remove later, for testing
+    start_fsm,
+    start_matmul,
     fsm_rdy,
 
     `ifdef ENABLE_STW
@@ -38,8 +38,8 @@ module bisr_systolic_top
     input clk;
     input rst;   //Active-high reset
 
-    input [ROWS * COLS * WORD_SIZE - 1 : 0] top_matrix;
-    input logic [WORD_SIZE:0] left_matrix[ROWS][COLS];
+    // input [ROWS * COLS * WORD_SIZE - 1 : 0] top_matrix;
+    // input logic [WORD_SIZE:0] left_matrix[ROWS][COLS];
     
     input inputs_rdy;   //Input matrices in memory, matmul can begin anytime
 
@@ -122,8 +122,8 @@ module bisr_systolic_top
         .set_stat_start(set_stat_start),
 
         //Matmul inputs
-        .top_matrix(top_matrix),
-        .left_matrix(left_matrix),
+        // .top_matrix(top_matrix),
+        // .left_matrix(left_matrix),
 
         //Start/done signals for fsm stages
         .start_fsm(start_fsm),
@@ -190,20 +190,22 @@ module bisr_systolic_top
     );
 
 
-//   `ifdef ENABLE_FI
-//       localparam NUM_FAULTS = 4;
-//       logic [`ROWS-1:0] fi_row_arr[NUM_FAULTS] = {'d1, 'd2, 'd3, 'd0};
-//       logic [`COLS-1:0] fi_col_arr[NUM_FAULTS] = {'d0, 'd1, 'd2, 'd3};
+  `ifdef ENABLE_FI
+      localparam NUM_FAULTS = 4;
+      logic [(`ROWS*NUM_FAULTS)-1:0] fi_row_arr = {`ROWS'd1, `ROWS'd2, `ROWS'd3, `ROWS'd0};
+      logic [(`COLS*NUM_FAULTS)-1:0] fi_col_arr = {`COLS'd0, `COLS'd1, `COLS'd2, `COLS'd3};
   
-//       initial begin
-//           for(integer f = 0; f < NUM_FAULTS; f++) begin
-//               fi_row = fi_row_arr[f];
-//               fi_col = fi_col_arr[f];
-//               fault_inject_bus[(fi_col*`ROWS+fi_row)*2 +: 2] = 2'b11;
-//               $display("Injected fault at col %0d, row %0d", fi_col, fi_row);
-//           end
-//       end
-//   `endif
+      initial begin
+          for(integer f = 0; f < NUM_FAULTS; f++) begin
+                fi_row = fi_row_arr[(f*`ROWS) +: `ROWS];
+                fi_col = fi_col_arr[(f*`COLS) +: `COLS];
+            //   fi_row = fi_row_arr[f];
+            //   fi_col = fi_col_arr[f];
+              fault_inject_bus[(fi_col*`ROWS+fi_row)*2 +: 2] = 2'b11;
+              $display("Injected fault at col %0d, row %0d", fi_col, fi_row);
+          end
+      end
+  `endif
 
     
     stw_wproxy_systolic #(

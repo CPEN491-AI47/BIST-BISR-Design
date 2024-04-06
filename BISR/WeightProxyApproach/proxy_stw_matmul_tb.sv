@@ -206,8 +206,8 @@ module stw_matmul_tb();
     bisr_systolic_top #(`ROWS, `COLS, `WORD_SIZE) systolic_dut (
         .clk(clk),
         .rst(rst),
-        .top_matrix(top_matrix),
-        .left_matrix(left_matrix),
+        // .top_matrix(top_matrix),
+        // .left_matrix(left_matrix),
         .inputs_rdy(1'b1),
 
         .start_fsm(start_fsm),
