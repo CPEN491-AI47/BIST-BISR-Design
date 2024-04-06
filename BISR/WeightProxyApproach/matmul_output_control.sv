@@ -22,7 +22,7 @@ module matmul_output_control
     matmul_output_valid,
     proxy_output_bus,
     proxy_out_valid_bus,
-    output_matrix,
+    // output_matrix,
     wr_output_rdy,
     wr_output_done,
 
@@ -39,7 +39,8 @@ module matmul_output_control
     input logic [COLS * WORD_SIZE-1:0] matmul_fsm_output;
     input logic [COLS * WORD_SIZE-1:0] proxy_output_bus;
     
-    output logic [WORD_SIZE - 1:0] output_matrix[ROWS][COLS] = '{default: '0};
+    // output logic [WORD_SIZE - 1:0] output_matrix[ROWS][COLS] = '{default: '0};
+    logic [WORD_SIZE - 1:0] output_matrix[ROWS][COLS] = '{default: '0};
 
     logic [WORD_SIZE - 1:0] sa_output_matrix[ROWS][COLS] = '{default: '0};
     logic [WORD_SIZE - 1:0] proxy_output_matrix[ROWS][COLS] = '{default: '0};
@@ -51,35 +52,28 @@ module matmul_output_control
     
     logic [$clog2(COLS):0] c;
     always @(posedge clk) begin
-        // if(rst) begin
-        //     for(c = 0; c < COLS; c++) begin
-        //         write_count[c] <= 0;
-        //         proxy_write_count <= 0;
-        //     end
-        // end
-        // else begin
-            for(c = 0; c < COLS; c++) begin
-                if(matmul_output_valid[c] && !stall) begin
-                    wr_en[c] <= ~wr_en[c];   //wr_en[c] serves as timing for when to write to output_matrix col c
-                end
-                else begin
-                    wr_en[c] <= 1'b0;
-                end
+        for(c = 0; c < COLS; c++) begin
+            if(matmul_output_valid[c] && !stall) begin
+                wr_en[c] <= ~wr_en[c];   //wr_en[c] serves as timing for when to write to output_matrix col c
             end
-        // end
+            else begin
+                wr_en[c] <= 1'b0;
+            end
+        end
     end
 
-    logic [WORD_SIZE-1:0] output_in;
-    logic [WORD_SIZE-1:0] output_read_data;
+    logic [$clog2(COLS):0] proxy_wr_en_idx;
+    logic [COLS-1:0] proxy_wr_en;
 
-    logic proxy_wr_en;
-    logic [WORD_SIZE-1:0] p_write_data;
-    // logic [WORD_SIZE-1:0] test, test_fsm_output;
     always @(posedge clk) begin
-        if(rst)
-            proxy_wr_en <= 1'b0;
-        else if(!stall)
-            proxy_wr_en <= ~proxy_wr_en;
+        for(proxy_wr_en_idx=0; proxy_wr_en_idx < COLS; proxy_wr_en_idx = proxy_wr_en_idx+1) begin
+            if(rst)
+                proxy_wr_en[proxy_wr_en_idx] <= 1'b0;
+            else if(proxy_out_valid_bus[proxy_wr_en_idx] && !stall)
+                proxy_wr_en[proxy_wr_en_idx] <= ~proxy_wr_en[proxy_wr_en_idx];
+            else
+                proxy_wr_en[proxy_wr_en_idx] <= 1'b0;
+        end
     end
 
     logic [(COLS*WORD_SIZE)-1:0] output_mat_by_row [ROWS-1:0];
@@ -87,36 +81,31 @@ module matmul_output_control
     genvar r, c1, proxy_c;
     generate
         for(c1 = 0; c1 < COLS; c1++) begin : write_sa_out_genblk
-            always @(posedge wr_en[c1]) begin   //output_matrix[rows][c1] "clocked" by wr_en[c1]
-                if(matmul_output_valid[c1]) begin
-                    write_count[c1] <= write_count[c1]+1'b1;   //Tracks what row of output_matrix we are writing to for col c1
-                    sa_output_matrix[write_count[c1]][c1] <= sa_output_matrix[write_count[c1]][c1] + matmul_fsm_output[c1 * WORD_SIZE +: WORD_SIZE];   //Update output matrix
-                    // test_fsm_output <= matmul_fsm_output[c1 * WORD_SIZE +: WORD_SIZE];
-                    output_in <= matmul_fsm_output[c1 * WORD_SIZE +: WORD_SIZE];
-                end
-                else begin
-                   
-                    output_in <= 'b0;
+            always @(posedge clk) begin     
+                if(wr_en[c1]) begin     //sa_output_matrix[rows][c1] "clocked" by wr_en[c1]
+                    if(matmul_output_valid[c1]) begin
+                        write_count[c1] <= write_count[c1]+1'b1;   //Tracks what row of output_matrix we are writing to for col c1
+                        sa_output_matrix[write_count[c1]][c1] <= sa_output_matrix[write_count[c1]][c1] + matmul_fsm_output[c1 * WORD_SIZE +: WORD_SIZE];   //Update output matrix
+                    end
                 end
             end
 
             for(r = 0; r < ROWS; r=r+1) begin : write_total_out_genblk
-                always @(*) begin
+                always @(posedge clk) begin
                     if(wr_en != 'b0)
-                        output_matrix[r][c1] = sa_output_matrix[r][c1] + proxy_output_matrix[r][c1];
+                        output_matrix[r][c1] <= sa_output_matrix[r][c1] + proxy_output_matrix[r][c1];
                 end
             end
         end
 
         for(proxy_c=0; proxy_c < COLS; proxy_c=proxy_c+1) begin : write_proxy_out_genblk
-            always @(posedge proxy_wr_en) begin
-            
-                if(proxy_out_valid_bus[proxy_c]) begin
-                    
-                    proxy_output_matrix[proxy_write_count[proxy_c]][proxy_c] <= proxy_output_matrix[proxy_write_count[proxy_c]][proxy_c] + proxy_output_bus[proxy_c * WORD_SIZE +: WORD_SIZE];   //Update output matrix
-                    p_write_data <= proxy_output_bus[proxy_c * WORD_SIZE +: WORD_SIZE];
-                    // test <= output_matrix[proxy_write_count[proxy_c]][proxy_c] + proxy_output_bus[proxy_c * WORD_SIZE +: WORD_SIZE];
-                    proxy_write_count[proxy_c] <= proxy_write_count[proxy_c]+1'b1;   //Tracks what row of output_matrix we are writing to for this proxy
+             always @(posedge clk) begin
+                if(proxy_wr_en[proxy_c]) begin   //proxy_output "clocked" by proxy_wr_en
+                    if(proxy_out_valid_bus[proxy_c]) begin
+                        
+                        proxy_output_matrix[proxy_write_count[proxy_c]][proxy_c] <= proxy_output_matrix[proxy_write_count[proxy_c]][proxy_c] + proxy_output_bus[proxy_c * WORD_SIZE +: WORD_SIZE];   //Update output matrix
+                        proxy_write_count[proxy_c] <= proxy_write_count[proxy_c]+1'b1;   //Tracks what row of output_matrix we are writing to for this proxy
+                    end
                 end
             end
         end
@@ -125,9 +114,9 @@ module matmul_output_control
 
     genvar out_r, out_c;
     generate
-        for(out_r = 0; out_r < ROWS; out_r=out_r+1) begin : write_out_mat_genblk
+        for(out_r = 0; out_r < ROWS; out_r=out_r+1) begin : write_out_mat_r_genblk
             //Map output_matrix to unpacked array (inedxed by row) for writing to memory
-            for(out_c = 0; out_c < COLS; out_c++) begin
+            for(out_c = 0; out_c < COLS; out_c++) begin : write_out_mat_c_genblk
                 assign output_mat_by_row[out_r][(out_c*WORD_SIZE) +: WORD_SIZE] = output_matrix[out_r][out_c];
             end
         end

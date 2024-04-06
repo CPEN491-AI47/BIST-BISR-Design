@@ -1,6 +1,6 @@
 `define WORD_SIZE 16
 `define ROWS 4
-`define COLS 4 
+`define COLS 4
 `define SEED 100
 
 `define stw_mult_op1 `WORD_SIZE'd4

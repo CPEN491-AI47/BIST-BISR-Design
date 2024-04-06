@@ -23,7 +23,7 @@ module bisr_systolic_top
     `endif
     
     //Top module outputs
-    output_matrix,
+    // output_matrix,
 
     //Addresses/Signals for read/write from Input RAM
     mem_rd_data,
@@ -156,7 +156,9 @@ module bisr_systolic_top
         .mem_wr_en(mem_wr_en)
     );
 
-    output logic [WORD_SIZE - 1:0] output_matrix[ROWS][COLS];
+    // output logic [WORD_SIZE - 1:0] output_matrix[ROWS][COLS];
+    // logic [WORD_SIZE - 1:0] output_matrix[ROWS][COLS];
+    
     output logic [31:0] output_mem_addr;
     output logic output_mem_wr_en;
     output logic [`MEM_PORT_WIDTH-1:0] output_mem_wr_data;
@@ -179,7 +181,7 @@ module bisr_systolic_top
             .proxy_out_valid_bus(proxy_out_valid_bus),
         `endif
         .matmul_output_valid(output_col_valid),
-        .output_matrix(output_matrix),
+        // .output_matrix(output_matrix),
         .wr_output_rdy(wr_output_rdy),
         .wr_output_done(wr_output_done),
         .mem_addr(output_mem_addr),
@@ -188,20 +190,20 @@ module bisr_systolic_top
     );
 
 
-   `ifdef ENABLE_FI
-       localparam NUM_FAULTS = 4;
-       logic [`ROWS-1:0] fi_row_arr[NUM_FAULTS] = {'d1, 'd2, 'd3, 'd0};
-       logic [`COLS-1:0] fi_col_arr[NUM_FAULTS] = {'d0, 'd1, 'd2, 'd3};
-   
-       initial begin
-           for(integer f = 0; f < NUM_FAULTS; f++) begin
-               fi_row = fi_row_arr[f];
-               fi_col = fi_col_arr[f];
-               fault_inject_bus[(fi_col*`ROWS+fi_row)*2 +: 2] = 2'b11;
-               $display("Injected fault at col %0d, row %0d", fi_col, fi_row);
-           end
-       end
-   `endif
+//   `ifdef ENABLE_FI
+//       localparam NUM_FAULTS = 4;
+//       logic [`ROWS-1:0] fi_row_arr[NUM_FAULTS] = {'d1, 'd2, 'd3, 'd0};
+//       logic [`COLS-1:0] fi_col_arr[NUM_FAULTS] = {'d0, 'd1, 'd2, 'd3};
+  
+//       initial begin
+//           for(integer f = 0; f < NUM_FAULTS; f++) begin
+//               fi_row = fi_row_arr[f];
+//               fi_col = fi_col_arr[f];
+//               fault_inject_bus[(fi_col*`ROWS+fi_row)*2 +: 2] = 2'b11;
+//               $display("Injected fault at col %0d, row %0d", fi_col, fi_row);
+//           end
+//       end
+//   `endif
 
     
     stw_wproxy_systolic #(

@@ -58,10 +58,12 @@ module stw_matmul_tb();
     //[9 4  1]   [1 2 3]    [32 46  60 ]    
     //[5 12 3] * [4 5 6] =  [74 94  114]
     //[6 8  7]   [7 8 9]    [87 108 129]
-    logic [`WORD_SIZE:0] expected_out[`ROWS][`COLS];
-    // logic [`WORD_SIZE:0] expected_out[`ROWS][`COLS] = '{'{`WORD_SIZE'd32, `WORD_SIZE'd46, `WORD_SIZE'd60},
-    //                                                  '{`WORD_SIZE'd74, `WORD_SIZE'd94, `WORD_SIZE'd114},
-    //                                                  '{`WORD_SIZE'd87, `WORD_SIZE'd108, `WORD_SIZE'd129}};
+    // logic [`WORD_SIZE:0] expected_out[`ROWS][`COLS];
+    logic [`WORD_SIZE:0] expected_out[`ROWS][`COLS] = '{'{`WORD_SIZE'd67, `WORD_SIZE'd43, `WORD_SIZE'd81, `WORD_SIZE'd23},   
+                                                     '{`WORD_SIZE'd85, `WORD_SIZE'd101, `WORD_SIZE'd173, `WORD_SIZE'd38},
+                                                     '{`WORD_SIZE'd80, `WORD_SIZE'd114, `WORD_SIZE'd232, `WORD_SIZE'd43},
+                                                     '{`WORD_SIZE'd71, `WORD_SIZE'd94, `WORD_SIZE'd220, `WORD_SIZE'd37}};
+    
  
     logic [`ROWS * `WORD_SIZE - 1: 0] left_in_bus;
     logic [`COLS * `WORD_SIZE - 1: 0] top_in_bus;
@@ -215,7 +217,7 @@ module stw_matmul_tb();
         .STW_complete(STW_complete),
         .STW_result_mat(STW_result_mat),
 
-        .output_matrix(output_matrix),
+        // .output_matrix(output_matrix),
 
         .mem_rd_data(mem_rd_data),
         .mem_addr(mem_addr),
@@ -322,7 +324,7 @@ module stw_matmul_tb();
         $display("Expected Output: left_matrix * top_matrix");
         for(integer r = 0; r < `ROWS; r++) begin
            for(integer c = 0; c < `COLS; c++) begin
-                $write("%d ", expected_out[r][c]);
+                $write("%x ", expected_out[r][c]);
             end
             $write("\n");
         end
@@ -330,7 +332,7 @@ module stw_matmul_tb();
         $display("Actual Output: left_matrix * top_matrix");
         for(integer r = 0; r < `ROWS; r++) begin
            for(integer c = 0; c < `COLS; c++) begin
-                $write("%x ", output_matrix[r][c]);
+                $write("%d ", output_matrix[r][c]);
             end
             $write("\n");
         end
