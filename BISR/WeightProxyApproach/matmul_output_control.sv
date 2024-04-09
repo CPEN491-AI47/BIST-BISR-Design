@@ -36,14 +36,14 @@ module matmul_output_control
     input clk, rst, stall, fsm_done, fsm_rdy;
     input [COLS-1:0] matmul_output_valid;
     input [COLS-1:0] proxy_out_valid_bus;
-    input logic [COLS * WORD_SIZE-1:0] matmul_fsm_output;
-    input logic [COLS * WORD_SIZE-1:0] proxy_output_bus;
+    input logic signed [COLS * WORD_SIZE-1:0] matmul_fsm_output;
+    input logic signed [COLS * WORD_SIZE-1:0] proxy_output_bus;
     
-    // output logic [WORD_SIZE - 1:0] output_matrix[ROWS][COLS] = '{default: '0};
-    logic [WORD_SIZE - 1:0] output_matrix[ROWS][COLS] = '{default: '0};
+    // output logic signed [WORD_SIZE - 1:0] output_matrix[ROWS][COLS] = '{default: '0};
+    logic signed [WORD_SIZE - 1:0] output_matrix[ROWS][COLS] = '{default: '0};
 
-    logic [WORD_SIZE - 1:0] sa_output_matrix[ROWS][COLS] = '{default: '0};
-    logic [WORD_SIZE - 1:0] proxy_output_matrix[ROWS][COLS] = '{default: '0};
+    logic signed [WORD_SIZE - 1:0] sa_output_matrix[ROWS][COLS] = '{default: '0};
+    logic signed [WORD_SIZE - 1:0] proxy_output_matrix[ROWS][COLS] = '{default: '0};
 
 
     logic [$clog2(ROWS):0] write_count[COLS] = '{default: '0};
@@ -76,7 +76,7 @@ module matmul_output_control
         end
     end
 
-    logic [(COLS*WORD_SIZE)-1:0] output_mat_by_row [ROWS-1:0];
+    logic signed [(COLS*WORD_SIZE)-1:0] output_mat_by_row [ROWS-1:0];
 
     genvar r, c1, proxy_c;
     generate
@@ -130,7 +130,7 @@ module matmul_output_control
     
     output logic [31:0] mem_addr;
     output logic mem_wr_en;
-    output logic [`MEM_PORT_WIDTH-1:0] mem_data;
+    output logic signed [`MEM_PORT_WIDTH-1:0] mem_data;
     
     logic [2:0] mem_delay;   //Num clk cycles left to stall until memory access value available
 

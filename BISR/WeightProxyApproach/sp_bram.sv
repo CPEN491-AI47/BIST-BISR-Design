@@ -9,12 +9,12 @@ module bram_mat #(
     localparam ADDR_WIDTH = 32;  //$clog2(ROWS*COLS);
     input clk;
     input we;
-    input [ADDR_WIDTH-1:0] addr;
-    input [`MEM_PORT_WIDTH-1:0] di;
-    output [`MEM_PORT_WIDTH-1:0] dout;
+    input logic [ADDR_WIDTH-1:0] addr;
+    input logic signed [`MEM_PORT_WIDTH-1:0] di;
+    output logic signed [`MEM_PORT_WIDTH-1:0] dout;
 
-    reg [`MEM_PORT_WIDTH-1:0] ram [NUM_LINES-1:0];
-    reg [`MEM_PORT_WIDTH-1:0] dout;
+    logic signed [`MEM_PORT_WIDTH-1:0] ram [NUM_LINES-1:0];
+    
 
     //For top matrix:
     //Left_matrix:
@@ -25,10 +25,10 @@ module bram_mat #(
         //[4 6 8  2]
         //[0 9 21 3]
         //[6 1 7  0]
-        ram[0] = {16'd1, 16'd0, 16'd0, 16'd5};
-        ram[1] = {16'd2, 16'd8, 16'd6, 16'd4};
-        ram[2] = {16'd3, 16'd21, 16'd9, 16'd0};
-        ram[3] = {16'd0, 16'd7, 16'd1, 16'd6};
+        ram[0] = {{16'd1, 16'b0}, {16'd0, 16'b0}, {16'd0, 16'b0}, {16'd5, 16'b0}};
+        ram[1] = {{16'd2, 16'b0}, {16'd8, 16'b0}, {-32'h18000}, {-32'h07000}};
+        ram[2] = {{16'd3, 16'b0}, {16'h0, 16'h2000}, {16'd9, 16'b0}, {16'd0, 16'b0}};
+        ram[3] = {{16'd0, 16'b0}, {16'd7, 16'b0}, {16'd1, 16'b0}, {16'd6, 16'b0}};
 
         //Left Matrix Starts Here
         //Original Left Matrix:
@@ -44,13 +44,13 @@ module bram_mat #(
         //[0 3  7 2]
         //[0 0  8 3]
         //[0 0  0 4]
-        ram[4] = {16'd0, 16'd0, 16'd0, 16'd9};
-        ram[5] = {16'd0, 16'd0, 16'd4, 16'd5};
-        ram[6] = {16'd0, 16'd2, 16'd12, 16'd6};
-        ram[7] = {16'd1, 16'd3, 16'd8, 16'd7};
-        ram[8] = {16'd2, 16'd7, 16'd3, 16'd0};
-        ram[9] = {16'd3, 16'd8, 16'd0, 16'd0};
-        ram[10] = {16'd4, 16'd0, 16'd0, 16'd0};
+        ram[4] = {{16'd0, 16'b0}, {16'd0, 16'b0}, {16'd0, 16'b0}, {16'd9, 16'b0}};
+        ram[5] = {{16'd0, 16'b0}, {16'd0, 16'b0}, {16'd4, 16'b0}, {16'd5, 16'b0}};
+        ram[6] = {{16'd0, 16'b0}, {16'd2, 16'b0}, {-32'h0D999}, {16'd6, 16'b0}};
+        ram[7] = {{16'd1, 16'b0}, {16'd3, 16'b0}, {16'd8, 16'b0}, {-32'h0000_0E56}};
+        ram[8] = {{16'd2, 16'b0}, {16'd7, 16'b0}, {16'd3, 16'b0}, {16'd0, 16'b0}};
+        ram[9] = {{16'd3, 16'b0}, {16'd8, 16'b0}, {16'd0, 16'b0}, {16'd0, 16'b0}};
+        ram[10] = {{16'd4, 16'b0}, {16'd0, 16'b0}, {16'd0, 16'b0}, {16'd0, 16'b0}};
         
         //Output Matrix starts here
         //Expected Output (hex) (standard matrix form)
@@ -64,10 +64,10 @@ module bram_mat #(
         // 002b00e800720050
         // 002600ad00650055
         // 00170051002b0043
-        ram[11] = {16'd0, 16'd0, 16'd0, 16'd0};
-        ram[12] = {16'd0, 16'd0, 16'd0, 16'd0};
-        ram[13] = {16'd0, 16'd0, 16'd0, 16'd0};
-        ram[14] = {16'd0, 16'd0, 16'd0, 16'd0};
+        ram[11] = {`WORD_SIZE'd0, `WORD_SIZE'd0, `WORD_SIZE'd0, `WORD_SIZE'd0};
+        ram[12] = {`WORD_SIZE'd0, `WORD_SIZE'd0, `WORD_SIZE'd0, `WORD_SIZE'd0};
+        ram[13] = {`WORD_SIZE'd0, `WORD_SIZE'd0, `WORD_SIZE'd0, `WORD_SIZE'd0};
+        ram[14] = {`WORD_SIZE'd0, `WORD_SIZE'd0, `WORD_SIZE'd0, `WORD_SIZE'd0};
     end
 
     always @(posedge clk) begin

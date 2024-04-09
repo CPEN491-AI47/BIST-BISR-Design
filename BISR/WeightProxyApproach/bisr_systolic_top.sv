@@ -55,18 +55,18 @@ module bisr_systolic_top
 
     //Left_in/top_in to systolic for this clk cycle
     logic [ROWS * WORD_SIZE - 1: 0] curr_cycle_left_in;
-    logic [COLS * WORD_SIZE - 1: 0] top_in_bus;
+    logic signed [COLS * WORD_SIZE - 1: 0] top_in_bus;
     // logic [ROWS * WORD_SIZE - 1: 0] left_in_bus;
 
     //Input to fsm: Bottom_out outputs from bottom of systolic @current clk cycle
-    logic [COLS * WORD_SIZE - 1: 0] sa_curr_bottom_out;  
+    logic signed [COLS * WORD_SIZE - 1: 0] sa_curr_bottom_out;  
 
     //Right_out/bottom_out outputs from systolic for this clk cycle
-    logic [ROWS * WORD_SIZE - 1: 0] right_out_bus;
+    logic signed [ROWS * WORD_SIZE - 1: 0] right_out_bus;
     // logic [COLS * WORD_SIZE - 1: 0] bottom_out_bus;
 
     //Matmul FSM Outputs
-    logic[COLS * WORD_SIZE-1:0] matmul_output;   //Bottom_out of systolic
+    logic signed[COLS * WORD_SIZE-1:0] matmul_output;   //Bottom_out of systolic
     logic [COLS-1:0] output_col_valid;   //If output_col_valid[i] == 1, then bottom_out of column i is valid
 
     //Signals for Fault Injection
@@ -156,8 +156,8 @@ module bisr_systolic_top
         .mem_wr_en(mem_wr_en)
     );
 
-    // output logic [WORD_SIZE - 1:0] output_matrix[ROWS][COLS];
-    // logic [WORD_SIZE - 1:0] output_matrix[ROWS][COLS];
+    // output logic signed [WORD_SIZE - 1:0] output_matrix[ROWS][COLS];
+    logic [WORD_SIZE - 1:0] output_matrix[ROWS][COLS];
     
     output logic [31:0] output_mem_addr;
     output logic output_mem_wr_en;

@@ -14,7 +14,7 @@ module stw_matmul_tb();
     //                               [1 8 9 7]
     //                               [6 7 1 8]
     logic [`ROWS * `COLS * `WORD_SIZE - 1 : 0] top_matrix;  // = {`WORD_SIZE'd0, `WORD_SIZE'd1, `WORD_SIZE'd7, `WORD_SIZE'd6, `WORD_SIZE'd3, `WORD_SIZE'd9, `WORD_SIZE'd21, `WORD_SIZE'd1, `WORD_SIZE'd2, `WORD_SIZE'd6, `WORD_SIZE'd0, `WORD_SIZE'd4, `WORD_SIZE'd1, `WORD_SIZE'd3, `WORD_SIZE'd2, `WORD_SIZE'd1};
-    logic [`WORD_SIZE-1:0]  top_matrix_2d[`ROWS][`COLS] = '{'{`WORD_SIZE'd5, `WORD_SIZE'd0, `WORD_SIZE'd0, `WORD_SIZE'd1},
+    logic signed [`WORD_SIZE-1:0]  top_matrix_2d[`ROWS][`COLS] = '{'{-`WORD_SIZE'd5, `WORD_SIZE'd0, `WORD_SIZE'd0, `WORD_SIZE'd1},
                                                      '{`WORD_SIZE'd4, `WORD_SIZE'd8, `WORD_SIZE'd6, `WORD_SIZE'd2},
                                                      '{`WORD_SIZE'd1, `WORD_SIZE'd21, `WORD_SIZE'd9, `WORD_SIZE'd3},
                                                      '{`WORD_SIZE'd6, `WORD_SIZE'd7, `WORD_SIZE'd1, `WORD_SIZE'd1}};
@@ -133,7 +133,7 @@ module stw_matmul_tb();
 
     always #5 clk = ~clk;
 
-    logic [`WORD_SIZE - 1:0] output_matrix[`ROWS][`COLS];
+    logic signed [`WORD_SIZE - 1:0] output_matrix[`ROWS][`COLS];
 
     //Inject Faults Randomly/Manually in MAC unit 
     task fault_injection;
@@ -228,7 +228,7 @@ module stw_matmul_tb();
         .output_mem_wr_en(output_mem_wr_en)
     );
 
-    bram_mat input_bram (
+    bram_mat #(`ROWS, `COLS, `WORD_SIZE) input_bram (
         .clk(clk),
         .we(mem_wr_en),
         .addr(mem_addr),
@@ -236,7 +236,7 @@ module stw_matmul_tb();
         .dout(mem_rd_data)
     );
 
-    bram_mat output_bram (
+    bram_mat #(`ROWS, `COLS, `WORD_SIZE) output_bram (
         .clk(clk),
         .we(output_mem_wr_en),
         .addr(output_mem_addr),
@@ -277,7 +277,7 @@ module stw_matmul_tb();
         $display("Top (weight) Matrix:");
         for(integer r = 0; r < `ROWS; r++) begin
            for(integer c = 0; c < `COLS; c++) begin
-                $write("%d ", top_matrix[(r*`COLS+c)*`WORD_SIZE +: `WORD_SIZE]);
+                $write("%d ", $signed(top_matrix[(r*`COLS+c)*`WORD_SIZE +: `WORD_SIZE]));
             end
             $write("\n");
         end
@@ -332,7 +332,7 @@ module stw_matmul_tb();
         $display("Actual Output: left_matrix * top_matrix");
         for(integer r = 0; r < `ROWS; r++) begin
            for(integer c = 0; c < `COLS; c++) begin
-                $write("%d ", output_matrix[r][c]);
+                $write("%x ", $signed(output_matrix[r][c]));
             end
             $write("\n");
         end

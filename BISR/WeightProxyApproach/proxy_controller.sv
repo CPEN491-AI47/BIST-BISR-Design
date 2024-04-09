@@ -47,21 +47,21 @@ module proxy_controller
     input STW_complete;
     input [ROWS-1:0] STW_result_mat;
 
-    input [WORD_SIZE-1:0] fpe_in_weight;
-    input [WORD_SIZE-1:0] fpe_in_top;
-    input [WORD_SIZE-1:0] fpe_in_col_output;
+    input logic signed [WORD_SIZE-1:0] fpe_in_weight;
+    input logic signed [WORD_SIZE-1:0] fpe_in_top;
+    input logic signed [WORD_SIZE-1:0] fpe_in_col_output;
 
     input proxy_map_done;
 
     output [ROW_WIDTH-1:0] fpe_idx_sel;
     output [ROWS-1:0] proxy_en;
     output fault_detected;
-    output reg [WORD_SIZE-1:0] proxy_left_in;
+    output logic signed [WORD_SIZE-1:0] proxy_left_in;
     // output reg [WORD_SIZE-1:0] proxy_top_in;
-    output reg [WORD_SIZE-1:0] fpe_output;
+    output logic signed [WORD_SIZE-1:0] fpe_output;
 
     wire [ROW_WIDTH-1:0] priority_fault_idx;
-    output reg [WORD_SIZE-1:0] fpe_weight;
+    output logic signed [WORD_SIZE-1:0] fpe_weight;
     output reg [2:0] proxy_settings;   //From msb <- lsb: {stat_bit_in, fsm_out_select_in, fsm_op2_select_in}
     output reg proxy_out_valid;
 
@@ -81,7 +81,7 @@ module proxy_controller
     reg [2:0] rcm_state;
     output reg load_proxy;
     output reg proxy_matmul;
-    input [WORD_SIZE-1:0] rcm_left_in;
+    input logic signed [WORD_SIZE-1:0] rcm_left_in;
 
     //Regs to keep timing of left_in & top_in
     always @(posedge clk) begin
@@ -138,8 +138,8 @@ module proxy_controller
     end
 
     //Keep timing of right_out & bottom_out of proxy PE
-    output [WORD_SIZE-1:0] proxy_stalled_top_in;
-    input [WORD_SIZE-1:0] proxy_top_in;
+    output logic signed [WORD_SIZE-1:0] proxy_stalled_top_in;
+    input logic signed [WORD_SIZE-1:0] proxy_top_in;
 
     vDFF #(
         .WORD_SIZE(WORD_SIZE)
@@ -151,8 +151,8 @@ module proxy_controller
         .stall(stall)
     );
 
-    output [WORD_SIZE-1:0] proxy_stalled_right_out;
-    input [WORD_SIZE-1:0] proxy_orig_left_in;   //Original left_in to the PE selected as proxy
+    output logic signed [WORD_SIZE-1:0] proxy_stalled_right_out;
+    input logic signed [WORD_SIZE-1:0] proxy_orig_left_in;   //Original left_in to the PE selected as proxy
     vDFF #(
         .WORD_SIZE(WORD_SIZE)
     ) proxy_right_out_ff (

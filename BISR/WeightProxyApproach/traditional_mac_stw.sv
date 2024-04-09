@@ -62,44 +62,44 @@ input stat_bit_in;
     wire [WORD_SIZE-1:0] stuck_at = (fault_inject[1]) ? {WORD_SIZE{1'b1}} : {WORD_SIZE{1'b0}};
 `endif
 
-input [WORD_SIZE - 1: 0] left_in;
-input [WORD_SIZE - 1: 0] top_in;
+input logic signed [WORD_SIZE - 1: 0] left_in;
+input logic signed [WORD_SIZE - 1: 0] top_in;
 
-output [WORD_SIZE - 1: 0] right_out;
-output [WORD_SIZE - 1: 0] bottom_out;
+output logic [WORD_SIZE - 1: 0] right_out;
+output logic [WORD_SIZE - 1: 0] bottom_out;
 
 wire [255:0] tie_low;
 assign tie_low = {WORD_SIZE{1'b0}};
 
 `ifdef ENABLE_WPROXY
-    output reg [WORD_SIZE - 1: 0] stationary_operand_reg;
+    output logic signed [WORD_SIZE - 1: 0] stationary_operand_reg;
     // input load_proxy;
     // input proxy_en; 
 `else
-    reg [WORD_SIZE - 1: 0] stationary_operand_reg;
+    logic signed [WORD_SIZE - 1: 0] stationary_operand_reg;
 `endif
-reg [WORD_SIZE - 1: 0] top_in_reg;
-reg [WORD_SIZE - 1: 0] left_in_reg;
-reg [WORD_SIZE - 1: 0] accumulator_reg;
+logic signed [WORD_SIZE - 1: 0] top_in_reg;
+logic signed [WORD_SIZE - 1: 0] left_in_reg;
+logic signed [WORD_SIZE - 1: 0] accumulator_reg;
 
-wire [WORD_SIZE - 1: 0] adder_out; 
-wire [WORD_SIZE - 1: 0] mult_op2_mux_out;
-wire [WORD_SIZE - 1: 0] add_op2_mux_out;
+logic signed [WORD_SIZE - 1: 0] adder_out; 
+logic signed [WORD_SIZE - 1: 0] mult_op2_mux_out;
+logic signed [WORD_SIZE - 1: 0] add_op2_mux_out;
 
 `ifdef ENABLE_STW
-    input [WORD_SIZE-1:0] STW_mult_op1;
-    input [WORD_SIZE-1:0] STW_mult_op2;
-    input [WORD_SIZE-1:0] STW_add_op;
-    input [WORD_SIZE-1:0] STW_expected;
+    input logic signed [WORD_SIZE-1:0] STW_mult_op1;
+    input logic signed [WORD_SIZE-1:0] STW_mult_op2;
+    input logic signed [WORD_SIZE-1:0] STW_add_op;
+    input logic signed [WORD_SIZE-1:0] STW_expected;
     input STW_test_load_en;
     input STW_start;
-    output reg STW_complete;
-    output reg STW_result_out = 1'b1;
+    output logic STW_complete;
+    output logic STW_result_out = 1'b1;
 
-    reg [WORD_SIZE-1:0] STW_mult_op1_reg;
-    reg [WORD_SIZE-1:0] STW_mult_op2_reg;
-    reg [WORD_SIZE-1:0] STW_add_op_reg;
-    reg [WORD_SIZE-1:0] STW_expected_reg;
+    logic signed [WORD_SIZE-1:0] STW_mult_op1_reg;
+    logic signed [WORD_SIZE-1:0] STW_mult_op2_reg;
+    logic signed [WORD_SIZE-1:0] STW_add_op_reg;
+    logic signed [WORD_SIZE-1:0] STW_expected_reg;
 
     // FSM for STW
     parameter STW_IDLE = 'h0;
@@ -171,35 +171,43 @@ assign right_out = left_in_reg;
     assign bottom_out = (fsm_out_select_in == 1'b0) ? {tie_low[WORD_SIZE - 1: 0] | top_in_reg} : accumulator_reg;
 `endif
 
-wire [WORD_SIZE - 1: 0] multiplier_out;
+logic signed [WORD_SIZE - 1: 0] multiplier_out;
 `ifdef ENABLE_STW
-    reg [WORD_SIZE - 1: 0] stw_multiplier_reg;
-    // assign multiplier_out = stw_en ? (STW_mult_op1_reg * STW_mult_op2_reg) : (left_in_reg * mult_op2_mux_out);
+    logic signed [WORD_SIZE - 1: 0] stw_multiplier_reg;
+
     always @(negedge clk) begin
         if (stw_en) begin
             stw_multiplier_reg <= STW_mult_op1_reg * STW_mult_op2_reg;
         end
-        // else begin
-        //     multiplier_out = left_in_reg * mult_op2_mux_out;
-        // end
+       
     end
-    // assign multiplier_out = stw_en ? stw_multiplier_reg : left_in_reg * mult_op2_mux_out;
+
 `endif
 
-
+logic signed [31:0] mul_fixed_out;
+mul_fixed32 multiplier_fixed32 (
+    .a(left_in_reg),
+    .b(mult_op2_mux_out),
+    .out(mul_fixed_out)
+);
 `ifdef ENABLE_FI
     // wire [WORD_SIZE - 1: 0] multiplier_out;
     //Stuck-at fault injected after multiply and before add
     `ifdef ENABLE_STW
-        assign multiplier_out = (fault_inject[0]) ? stuck_at : (stw_en ? stw_multiplier_reg : left_in_reg * mult_op2_mux_out);
+        
+        // assign multiplier_out = (fault_inject[0]) ? stuck_at : (stw_en ? stw_multiplier_reg : left_in_reg * mult_op2_mux_out);
+        assign multiplier_out = (fault_inject[0]) ? stuck_at : (stw_en ? stw_multiplier_reg : mul_fixed_out);
     `else
-        assign multiplier_out = (fault_inject[0]) ? stuck_at : left_in_reg * mult_op2_mux_out;
+        // assign multiplier_out = (fault_inject[0]) ? stuck_at : left_in_reg * mult_op2_mux_out;
+        assign multiplier_out = (fault_inject[0]) ? stuck_at : mul_fixed_out;
     `endif
 `elsif ENABLE_STW
-    assign multiplier_out = stw_en ? stw_multiplier_reg : left_in_reg * mult_op2_mux_out;
+    // assign multiplier_out = stw_en ? stw_multiplier_reg : left_in_reg * mult_op2_mux_out;
+    assign multiplier_out = stw_en ? stw_multiplier_reg : mul_fixed_out;
 `else
 
-    assign multiplier_out = left_in_reg * mult_op2_mux_out;
+    // assign multiplier_out = left_in_reg * mult_op2_mux_out;
+    assign multiplier_out = mul_fixed_out;
 `endif
 
 `ifdef ENABLE_STW
