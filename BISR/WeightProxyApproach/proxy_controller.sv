@@ -60,7 +60,7 @@ module proxy_controller
     // output reg [WORD_SIZE-1:0] proxy_top_in;
     output logic signed [WORD_SIZE-1:0] fpe_output;
 
-    wire [ROW_WIDTH-1:0] priority_fault_idx;
+    wire [ROW_WIDTH:0] priority_fault_idx;
     output logic signed [WORD_SIZE-1:0] fpe_weight;
     output reg [2:0] proxy_settings;   //From msb <- lsb: {stat_bit_in, fsm_out_select_in, fsm_op2_select_in}
     output reg proxy_out_valid;
@@ -75,8 +75,8 @@ module proxy_controller
     );
     
     assign fault_detected = ~(&STW_result_mat);   //If STW_results is all 1, then fault_det = 0
-    assign proxy_en = fault_detected ? ('b1 << priority_fault_idx) : 'b0;
-    assign fpe_idx_sel = priority_fault_idx;
+    assign proxy_en = (fault_detected && priority_fault_idx[ROW_WIDTH]) ? ('b1 << priority_fault_idx[ROW_WIDTH-1:0]) : 'b0;
+    assign fpe_idx_sel = priority_fault_idx[ROW_WIDTH-1:0];
 
     reg [2:0] rcm_state;
     output reg load_proxy;
@@ -90,8 +90,8 @@ module proxy_controller
             proxy_out_valid <= 'b0;
         end
         else if(!stall) begin
-            proxy_left_in <= rcm_left_in;
-            proxy_out_valid <= ((proxy_left_in != 'b0) && proxy_map_done);
+            proxy_left_in <= (priority_fault_idx[ROW_WIDTH]) ? rcm_left_in : 'b0;
+            proxy_out_valid <= ((proxy_left_in != 'b0) && proxy_map_done && priority_fault_idx[ROW_WIDTH]);
         end
     end
 

@@ -33,8 +33,48 @@ module bisr_systolic_top
     //Addresses/Signals for read/write from Output RAM
     output_mem_wr_data,
     output_mem_addr,
-    output_mem_wr_en
+    output_mem_wr_en,
+
+
+    // stationary_operand_reg
+    // multiplier_out,
+    // top_in_reg
+    // left_in_reg,
+    // accumulator_reg,
+    // adder_out, 
+    // mult_op2_mux_out,
+    // add_op2_mux_out,
+    // b_out_test
+    // bus_out_col0
+    // outctrl_test,
+	//  outctrl_test1,
+    //  proxy_out_valid_bus,
+    //  fpe_idx_sel_test,
+    //  proxy_en_test,
+    //  rcm_left_test
 );
+
+    // logic signed [WORD_SIZE - 1: 0] multiplier_out;  //TODO: Remove
+    // logic signed [WORD_SIZE - 1: 0] top_in_reg;
+    // logic signed [WORD_SIZE - 1: 0] left_in_reg;
+    // output logic signed [WORD_SIZE - 1: 0] accumulator_reg;
+
+    // output logic signed [WORD_SIZE - 1: 0] adder_out; 
+    // output logic signed [WORD_SIZE - 1: 0] mult_op2_mux_out;
+    // output logic signed [WORD_SIZE - 1: 0] add_op2_mux_out;
+    // logic signed [WORD_SIZE - 1: 0] accumulator_reg;
+
+    // logic signed [WORD_SIZE - 1: 0] adder_out; 
+    // logic signed [WORD_SIZE - 1: 0] mult_op2_mux_out;
+    // logic signed [WORD_SIZE - 1: 0] add_op2_mux_out;
+    
+    // logic signed [WORD_SIZE - 1: 0] stationary_operand_reg;
+
+    // logic signed [WORD_SIZE - 1: 0] b_out_test; 
+
+    // logic signed [WORD_SIZE - 1: 0] bus_out_col0; 
+
+
     input clk;
     input rst;   //Active-high reset
 
@@ -61,12 +101,17 @@ module bisr_systolic_top
     //Input to fsm: Bottom_out outputs from bottom of systolic @current clk cycle
     logic signed [COLS * WORD_SIZE - 1: 0] sa_curr_bottom_out;  
 
+    
+
     //Right_out/bottom_out outputs from systolic for this clk cycle
     logic signed [ROWS * WORD_SIZE - 1: 0] right_out_bus;
     // logic [COLS * WORD_SIZE - 1: 0] bottom_out_bus;
 
     //Matmul FSM Outputs
     logic signed[COLS * WORD_SIZE-1:0] matmul_output;   //Bottom_out of systolic
+
+    // assign bus_out_col0 = matmul_output[WORD_SIZE-1:0];
+
     logic [COLS-1:0] output_col_valid;   //If output_col_valid[i] == 1, then bottom_out of column i is valid
 
     //Signals for Fault Injection
@@ -85,9 +130,14 @@ module bisr_systolic_top
         // logic [WORD_SIZE-1:0] STW_add_op;
         // logic [WORD_SIZE-1:0] STW_expected;
         // logic STW_start;
+        
+        
         //outputs
-        output logic STW_complete;
+        output logic STW_complete; //NOTE: REVERT
         output logic [(ROWS * COLS)-1:0] STW_result_mat;
+
+        // logic STW_complete;
+        // logic [(ROWS * COLS)-1:0] STW_result_mat;
 
         logic stw_en;   //Signal from fsm to run STW
 
@@ -159,10 +209,12 @@ module bisr_systolic_top
     // output logic signed [WORD_SIZE - 1:0] output_matrix[ROWS][COLS];
     logic [WORD_SIZE - 1:0] output_matrix[ROWS][COLS];
     
-    output logic [31:0] output_mem_addr;
+    output logic [31:0] output_mem_addr;  // NOTE revert
     output logic output_mem_wr_en;
     output logic [`MEM_PORT_WIDTH-1:0] output_mem_wr_data;
     
+    // output logic signed [WORD_SIZE - 1: 0] outctrl_test; 
+    // output logic signed [WORD_SIZE - 1: 0] outctrl_test1; 
 
     matmul_output_control #(
         .ROWS(ROWS),
@@ -175,7 +227,7 @@ module bisr_systolic_top
         .stall(stall),
         .fsm_rdy(fsm_rdy),
         .fsm_done(fsm_done),
-        .matmul_fsm_output(matmul_output),
+        .matmul_fsm_output(sa_curr_bottom_out),
         `ifdef ENABLE_WPROXY
             .proxy_output_bus(proxy_output_bus),
             .proxy_out_valid_bus(proxy_out_valid_bus),
@@ -186,7 +238,10 @@ module bisr_systolic_top
         .wr_output_done(wr_output_done),
         .mem_addr(output_mem_addr),
         .mem_wr_en(output_mem_wr_en),
-        .mem_data(output_mem_wr_data)
+        .mem_data(output_mem_wr_data),
+
+        // .outctrl_test(outctrl_test),
+        // .outctrl_test1(outctrl_test1)
     );
 
 
@@ -207,7 +262,9 @@ module bisr_systolic_top
       end
   `endif
 
-    
+    // output logic [1:0] fpe_idx_sel_test;
+    // output logic [ROWS-1:0] proxy_en_test;
+    // output logic [WORD_SIZE-1:0] rcm_left_test;
     stw_wproxy_systolic #(
         .ROWS(ROWS),
         .COLS(COLS),
@@ -248,7 +305,20 @@ module bisr_systolic_top
 
         //Right_out/bottom_out outputs from systolic
         .bottom_out_bus(sa_curr_bottom_out),
-        .right_out_bus(right_out_bus)
+        .right_out_bus(right_out_bus),
+
+        // .multiplier_out(multiplier_out),
+        //             .top_in_reg(top_in_reg),
+        //             .left_in_reg(left_in_reg),
+        //             .accumulator_reg(accumulator_reg),
+        //             .b_out_test(b_out_test),
+        //             .adder_out(adder_out), 
+        //             .mult_op2_mux_out(mult_op2_mux_out),
+        //             .add_op2_mux_out(add_op2_mux_out),
+        //             .stationary_operand_reg(stationary_operand_reg),
+        //             .fpe_idx_sel_test(fpe_idx_sel_test),
+        //             .proxy_en_test(proxy_en_test),
+        //             .rcm_left_test(rcm_left_test)
     );
 
 

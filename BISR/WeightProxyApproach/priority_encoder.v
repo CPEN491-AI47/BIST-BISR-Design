@@ -11,7 +11,7 @@ module priority_encoder
 
     input rst;
     input [INPUT_WIDTH-1:0] data_in;
-    output reg [NUM_ENCODED_BITS-1:0] encoded_out;
+    output reg [NUM_ENCODED_BITS:0] encoded_out;  //MSB = 0 for inactive, 1 for active
     // reg break_loop = 0;
 
     // always @(*) begin
@@ -34,10 +34,11 @@ module priority_encoder
 //    endgenerate
     reg [NUM_ENCODED_BITS:0] i;
     always @(*) begin
-        encoded_out = 'bx;
+        encoded_out = 'b0;
         for(i = 0; i < INPUT_WIDTH; i=i+1) begin
             if((data_in[i] == ENCODED_VAL)) begin   //Find idx of 1st ZERO
-                encoded_out = i;
+                encoded_out[NUM_ENCODED_BITS] = 1'b1;
+                encoded_out[NUM_ENCODED_BITS-1:0] = i;
                 // break_loop = 1'b1;
             end
         end

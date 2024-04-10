@@ -29,9 +29,15 @@ module matmul_output_control
     //Signals for writing to memory
     mem_addr,
     mem_wr_en,
-    mem_data
+    mem_data,
+
+    // outctrl_test,
+    // outctrl_test1
 );
     localparam ADDR_WIDTH = $clog2(ROWS*COLS);
+
+    // output logic signed [WORD_SIZE - 1: 0] outctrl_test;
+    // output logic signed [WORD_SIZE - 1: 0] outctrl_test1; 
 
     input clk, rst, stall, fsm_done, fsm_rdy;
     input [COLS-1:0] matmul_output_valid;
@@ -43,7 +49,11 @@ module matmul_output_control
     logic signed [WORD_SIZE - 1:0] output_matrix[ROWS][COLS] = '{default: '0};
 
     logic signed [WORD_SIZE - 1:0] sa_output_matrix[ROWS][COLS] = '{default: '0};
+
+    // assign outctrl_test = output_matrix[0][1];
+
     logic signed [WORD_SIZE - 1:0] proxy_output_matrix[ROWS][COLS] = '{default: '0};
+    // assign outctrl_test1 = proxy_output_matrix[0][1];
 
 
     logic [$clog2(ROWS):0] write_count[COLS] = '{default: '0};
@@ -94,6 +104,7 @@ module matmul_output_control
                 always @(posedge clk) begin
                     if(wr_en != 'b0)
                         output_matrix[r][c1] <= sa_output_matrix[r][c1] + proxy_output_matrix[r][c1];
+                        // output_matrix[r][c1] <= sa_output_matrix[r][c1];
                 end
             end
         end

@@ -40,10 +40,19 @@ module traditional_mac_stw
         // proxy_en,   //If 1: that PE can be used as a proxy
         // load_proxy,
     `endif
+
     left_in,
     top_in, 
     right_out,
-    bottom_out
+    bottom_out,
+
+    multiplier_out,
+    top_in_reg,
+    left_in_reg,
+    accumulator_reg,
+    adder_out, 
+    mult_op2_mux_out,
+    add_op2_mux_out
 );
 
 input clk;
@@ -78,13 +87,13 @@ assign tie_low = {WORD_SIZE{1'b0}};
 `else
     logic signed [WORD_SIZE - 1: 0] stationary_operand_reg;
 `endif
-logic signed [WORD_SIZE - 1: 0] top_in_reg;
-logic signed [WORD_SIZE - 1: 0] left_in_reg;
-logic signed [WORD_SIZE - 1: 0] accumulator_reg;
+output logic signed [WORD_SIZE - 1: 0] top_in_reg;
+output logic signed [WORD_SIZE - 1: 0] left_in_reg;
+output logic signed [WORD_SIZE - 1: 0] accumulator_reg;
 
-logic signed [WORD_SIZE - 1: 0] adder_out; 
-logic signed [WORD_SIZE - 1: 0] mult_op2_mux_out;
-logic signed [WORD_SIZE - 1: 0] add_op2_mux_out;
+output logic signed [WORD_SIZE - 1: 0] adder_out; 
+output logic signed [WORD_SIZE - 1: 0] mult_op2_mux_out;
+output logic signed [WORD_SIZE - 1: 0] add_op2_mux_out;
 
 `ifdef ENABLE_STW
     input logic signed [WORD_SIZE-1:0] STW_mult_op1;
@@ -171,7 +180,7 @@ assign right_out = left_in_reg;
     assign bottom_out = (fsm_out_select_in == 1'b0) ? {tie_low[WORD_SIZE - 1: 0] | top_in_reg} : accumulator_reg;
 `endif
 
-logic signed [WORD_SIZE - 1: 0] multiplier_out;
+output logic signed [WORD_SIZE - 1: 0] multiplier_out;  //TODO: Remove
 `ifdef ENABLE_STW
     logic signed [WORD_SIZE - 1: 0] stw_multiplier_reg;
 

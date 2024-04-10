@@ -53,7 +53,20 @@ module stw_wproxy_systolic
     left_in_bus,
     top_in_bus,
     bottom_out_bus,
-    right_out_bus
+    right_out_bus,
+
+    // stationary_operand_reg,
+    // multiplier_out,
+    // top_in_reg,
+    // left_in_reg,
+    // accumulator_reg,
+    // adder_out, 
+    // mult_op2_mux_out,
+    // add_op2_mux_out,
+    // b_out_test,
+    // fpe_idx_sel_test,
+    // proxy_en_test,
+    // rcm_left_test
 );
 
     input clk;
@@ -114,8 +127,15 @@ module stw_wproxy_systolic
         reg [NUM_BITS_ROWS:0] curr_stationary_row_idx;
         reg set_proxy_en;
 
+
+        // output logic [ROWS-1:0] proxy_en_test;
+        // assign proxy_en_test = proxy_en[1];
+
         logic signed [WORD_SIZE-1:0] curr_col_min_weight [COLS-1:0];
         reg [COLS-1:0] load_col_min_weight;
+        logic [WORD_SIZE-1:0] comp_top_in;
+        logic [WORD_SIZE-1:0] comp_curr_min;
+        logic comp;
 
         genvar curr_col;
         generate
@@ -126,11 +146,16 @@ module stw_wproxy_systolic
                         load_col_min_weight[curr_col] = 1'b0;
                     end
                     else begin
+                        if(curr_col == 0) begin
+                        comp_top_in = top_in_bus[(curr_col+1) * WORD_SIZE - 2 -: (WORD_SIZE-1)];
+                        comp_curr_min = curr_col_min_weight[curr_col][(WORD_SIZE-1):0];
+                        comp = top_in_bus[(curr_col+1) * WORD_SIZE - 2 -: (WORD_SIZE-1)] < curr_col_min_weight[curr_col][(WORD_SIZE-1):0];
+                        end
                         if(set_proxy_en) begin
                             if(curr_stationary_row_idx == (ROWS-1)) begin   //First weight in, load as curr_min_weight
                                 load_col_min_weight[curr_col] = 1'b1;
                             end
-                            else if(top_in_bus[(curr_col+1) * WORD_SIZE - 2 -: (WORD_SIZE-1)] < curr_col_min_weight[curr_col][(WORD_SIZE-1):0]) begin
+                            else if(top_in_bus[(curr_col+1) * WORD_SIZE -1 -: (WORD_SIZE-1)] < curr_col_min_weight[curr_col]) begin
                                 load_col_min_weight[curr_col] = 1'b1;
                             end
                             else begin
@@ -164,7 +189,7 @@ module stw_wproxy_systolic
         always @(posedge clk) begin   //NOTE: Check if this fsm needs to be in generate (may only need 1 shared amongst all cols)
             if(rst) begin
                 proxy_state <= `PROXY_TBD;
-                curr_stationary_row_idx <= (ROWS);   //FIXME: See if there's a more efficient way to update a onehot proxy_en w/o adding idx of bit
+                curr_stationary_row_idx <= ROWS;   //FIXME: See if there's a more efficient way to update a onehot proxy_en w/o adding idx of bit
                 mem_delay <= `MEM_ACCESS_LATENCY-1;
                 set_proxy_en <= 1'b0;
                 proxy_map_done <= 1'b0;
@@ -177,6 +202,7 @@ module stw_wproxy_systolic
                         set_proxy_en <= 1'b0;
                         if(set_stat_start && !ctl_dummy_fsm_out_select_in && ctl_dummy_fsm_op2_select_in) begin   //Settings for SET_STATIONARY enabled
                             set_proxy_en <= 1'b1;
+                            if(curr_stationary_row_idx > 0)
                             curr_stationary_row_idx <= curr_stationary_row_idx - 1'b1;
 
                             // if((curr_stationary_row_idx - 1'b1) == 'b0) begin   //This is last cycle of SET_STATIONARY
@@ -272,6 +298,8 @@ module stw_wproxy_systolic
     logic signed [COLS * ROWS * WORD_SIZE - 1: 0] ver_interconnect;
 
     wire [NUM_BITS_ROWS-1:0] fpe_idx_sel [COLS-1:0];
+    // output wire [NUM_BITS_ROWS-1:0] fpe_idx_sel_test;
+    // assign fpe_idx_sel_test = fpe_idx_sel[0];
     // wire [ROWS-1:0] proxy_en;
     wire [COLS-1:0] fault_detected;
     logic signed [WORD_SIZE-1:0] proxy_left_in;
@@ -293,6 +321,19 @@ module stw_wproxy_systolic
     logic signed [WORD_SIZE-1:0] proxy_stalled_right_out [COLS-1:0];
     logic signed [(ROWS*WORD_SIZE)-1:0] col_idxed_hor_interconnect [COLS-1:0];   //hor_interconnect organized by col
     
+    //  output logic signed [WORD_SIZE - 1: 0] multiplier_out;  //TODO: Remove
+    // output logic signed [WORD_SIZE - 1: 0] top_in_reg;
+    // output logic signed [WORD_SIZE - 1: 0] left_in_reg;
+    // output logic signed [WORD_SIZE - 1: 0] accumulator_reg;
+
+    // output logic signed [WORD_SIZE - 1: 0] adder_out; 
+    // output logic signed [WORD_SIZE - 1: 0] mult_op2_mux_out;
+    // output logic signed [WORD_SIZE - 1: 0] add_op2_mux_out;
+    // output logic signed [WORD_SIZE - 1: 0] stationary_operand_reg;
+    // output logic signed [WORD_SIZE - 1: 0] b_out_test;
+    // output logic signed [WORD_SIZE - 1: 0] rcm_left_test; 
+    
+
     genvar r, c;
     generate
     for (r = 0; r < ROWS; r = r + 1) begin : right_out_genblk
@@ -415,7 +456,8 @@ module stw_wproxy_systolic
             .proxy_map_done(proxy_map_done)
         );
     end
-    
+
+
     //Added naming for gen blocks and renamed MAC modules for ease of hierarchical reference in tb
     for(r = 0; r < ROWS; r = r+1) begin : mac_row_genblk
         for(c = 0; c < COLS; c = c+1) begin : mac_col_genblk
@@ -511,7 +553,7 @@ module stw_wproxy_systolic
                 logic signed [WORD_SIZE-1:0] pe_right_out;
                 assign hor_interconnect[HORIZONTAL_SIGNAL_OFFSET -1 -: WORD_SIZE]= ((fault_detected[c] && proxy_map[c][r])) ? proxy_stalled_right_out[c] : pe_right_out;
 
-
+                // assign b_out_test = pe_bottom_out[c][((r+1)*WORD_SIZE)-1 -: WORD_SIZE];
                 traditional_mac_stw #(
                     .WORD_SIZE(WORD_SIZE)
                 ) u_mac(
@@ -541,6 +583,16 @@ module stw_wproxy_systolic
                     .top_in(selected_top_in),
                     .right_out(pe_right_out),
                     .bottom_out(pe_bottom_out[c][((r+1)*WORD_SIZE)-1 -: WORD_SIZE])
+
+                    // .multiplier_out(multiplier_out),
+                    // .top_in_reg(top_in_reg),
+                    // .left_in_reg(left_in_reg),
+                    // .accumulator_reg(accumulator_reg),
+
+                    // .adder_out(adder_out), 
+                    // .mult_op2_mux_out(mult_op2_mux_out),
+                    // .add_op2_mux_out(add_op2_mux_out),
+                    // .stationary_operand_reg(stationary_operand_reg)
                 );
             end
             else if (r==0)
