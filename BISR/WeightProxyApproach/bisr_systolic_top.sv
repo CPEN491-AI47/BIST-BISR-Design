@@ -14,7 +14,7 @@ module bisr_systolic_top
     inputs_rdy,
 
     start_fsm,
-    start_matmul,
+    bisr_en,
     fsm_rdy,
 
     `ifdef ENABLE_STW
@@ -84,7 +84,7 @@ module bisr_systolic_top
     
     input inputs_rdy;   //Input matrices in memory, matmul can begin anytime
 
-    input logic start_fsm, start_matmul;
+    input logic start_fsm, bisr_en;
     output logic fsm_rdy;
     logic fsm_done;
     // assign start_fsm = inputs_rdy;   //NOTE: Double-check if this is always true
@@ -178,7 +178,7 @@ module bisr_systolic_top
 
         //Start/done signals for fsm stages
         .start_fsm(start_fsm),
-        .start_matmul(start_matmul),
+        .bisr_en(bisr_en),
         .stw_en(stw_en),
         .fsm_done(fsm_done),
         .fsm_rdy(fsm_rdy),
@@ -250,8 +250,8 @@ module bisr_systolic_top
     localparam NUM_FAULTS = 1;
     // logic [(`ROWS*NUM_FAULTS)-1:0] fi_row_arr = {`ROWS'd1, `ROWS'd2, `ROWS'd3, `ROWS'd0};
     // logic [(`COLS*NUM_FAULTS)-1:0] fi_col_arr = {`COLS'd0, `COLS'd1, `COLS'd2, `COLS'd3};
-    logic [(`ROWS*NUM_FAULTS)-1:0] fi_row_arr; // = {`ROWS'd0}; //, `ROWS'd2, `ROWS'd3, `ROWS'd0};
-    logic [(`COLS*NUM_FAULTS)-1:0] fi_col_arr; // = {`COLS'd0}; //, `COLS'd1, `COLS'd2, `COLS'd3};
+    logic [(`ROWS*NUM_FAULTS)-1:0] fi_row_arr = {`ROWS'd0}; //, `ROWS'd2, `ROWS'd3, `ROWS'd0};
+    logic [(`COLS*NUM_FAULTS)-1:0] fi_col_arr = {`COLS'd0}; //, `COLS'd1, `COLS'd2, `COLS'd3};
 
     input logic fi_en;
     // assign fault_inject_bus[1:0] = 2'b11;

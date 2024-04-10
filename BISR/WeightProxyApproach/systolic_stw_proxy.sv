@@ -137,9 +137,14 @@ module stw_wproxy_systolic
         logic [WORD_SIZE-1:0] comp_curr_min;
         logic comp;
 
+        // typedef logic signed [WORD_SIZE-1:0] signedword_t;
+
+
         genvar curr_col;
         generate
             for(curr_col=0; curr_col < COLS; curr_col=curr_col+1) begin : load_col_min_weight_genblk
+                logic comp_abs;
+                absolutevalue32b_comp abs (top_in_bus[(curr_col+1) * WORD_SIZE - 1 -: (WORD_SIZE)], curr_col_min_weight[curr_col], comp_abs);
                 //If set_proxy_en: Compare each incoming weight to find smallest to set as Proxy
                 always @(*) begin
                     if(rst) begin
@@ -147,15 +152,17 @@ module stw_wproxy_systolic
                     end
                     else begin
                         if(curr_col == 0) begin
-                        comp_top_in = top_in_bus[(curr_col+1) * WORD_SIZE - 2 -: (WORD_SIZE-1)];
-                        comp_curr_min = curr_col_min_weight[curr_col][(WORD_SIZE-1):0];
-                        comp = top_in_bus[(curr_col+1) * WORD_SIZE - 2 -: (WORD_SIZE-1)] < curr_col_min_weight[curr_col][(WORD_SIZE-1):0];
+                            
+
+                            comp_top_in = top_in_bus[(curr_col+1) * WORD_SIZE-1 -: (WORD_SIZE)];
+                            comp_curr_min = curr_col_min_weight[curr_col];
+                            comp = $signed(top_in_bus[(curr_col+1) * WORD_SIZE - 1 -: WORD_SIZE]) < $signed(curr_col_min_weight[curr_col]);
                         end
                         if(set_proxy_en) begin
                             if(curr_stationary_row_idx == (ROWS-1)) begin   //First weight in, load as curr_min_weight
                                 load_col_min_weight[curr_col] = 1'b1;
                             end
-                            else if(top_in_bus[(curr_col+1) * WORD_SIZE -1 -: (WORD_SIZE-1)] < curr_col_min_weight[curr_col]) begin
+                            else if(comp_abs) begin
                                 load_col_min_weight[curr_col] = 1'b1;
                             end
                             else begin
@@ -202,17 +209,18 @@ module stw_wproxy_systolic
                         set_proxy_en <= 1'b0;
                         if(set_stat_start && !ctl_dummy_fsm_out_select_in && ctl_dummy_fsm_op2_select_in) begin   //Settings for SET_STATIONARY enabled
                             set_proxy_en <= 1'b1;
-                            if(curr_stationary_row_idx > 0)
+                            // if(curr_stationary_row_idx > 0)
                             curr_stationary_row_idx <= curr_stationary_row_idx - 1'b1;
 
-                            // if((curr_stationary_row_idx - 1'b1) == 'b0) begin   //This is last cycle of SET_STATIONARY
-                            //     proxy_state <= `PROXY_SET;
-                            // end
-                            // else
+                            if((curr_stationary_row_idx) == 'b0) begin   //This is last cycle of SET_STATIONARY
+                                set_proxy_en <= 1'b0;
+                                proxy_state <= `PROXY_SET;
+                            end
+                            else
                                 proxy_state <= `MEM_RD_DELAY;
                         end
                         else if(ctl_dummy_fsm_out_select_in && !ctl_dummy_fsm_op2_select_in && ctl_stat_bit_in) begin   //Weight was loaded, moving to matmul stage
-                            set_proxy_en <= 1'b1;
+                            set_proxy_en <= 1'b0;
                             proxy_state <= `PROXY_SET;
                         end
                         // else if (curr_stationary_row_idx == 'b0) begin
@@ -243,6 +251,7 @@ module stw_wproxy_systolic
                         set_proxy_en <= 1'b0;
                         proxy_state <= `PROXY_SET;
                     end
+                    default: proxy_state <= `PROXY_TBD;
                 endcase
             end
         end  
@@ -315,7 +324,7 @@ module stw_wproxy_systolic
     output logic signed [(COLS*WORD_SIZE)-1: 0] proxy_output_bus;
 
     logic signed [(ROWS*WORD_SIZE)-1:0] pe_bottom_out [COLS-1:0];
-    wire [NUM_BITS_ROWS-1:0] proxy_idx [COLS-1:0];
+    wire [NUM_BITS_ROWS:0] proxy_idx [COLS-1:0];
 
     logic signed [WORD_SIZE-1:0] proxy_stalled_top_in [COLS-1:0];
     logic signed [WORD_SIZE-1:0] proxy_stalled_right_out [COLS-1:0];
@@ -383,7 +392,7 @@ module stw_wproxy_systolic
             .WORD_SIZE(WORD_SIZE)
         ) proxy_output_mux (
             .input_options_bus(pe_bottom_out[c]),
-            .out_sel(proxy_idx[c]),
+            .out_sel(proxy_idx[c][NUM_BITS_ROWS-1:0]),
             .mux_out(proxy_output_bus[(c*WORD_SIZE) +: WORD_SIZE])
         );
 
@@ -397,7 +406,7 @@ module stw_wproxy_systolic
             .WORD_SIZE(WORD_SIZE)
         ) proxy_top_in_mux (
             .input_options_bus(col_top_in),
-            .out_sel(proxy_idx[c]),
+            .out_sel(proxy_idx[c][NUM_BITS_ROWS-1:0]),
             .mux_out(proxy_top_in)
         );
 
@@ -417,7 +426,7 @@ module stw_wproxy_systolic
             .WORD_SIZE(WORD_SIZE)
         ) proxy_orig_left_in_mux (
             .input_options_bus(col_left_in),
-            .out_sel(proxy_idx[c]),
+            .out_sel(proxy_idx[c][NUM_BITS_ROWS-1:0]),
             .mux_out(proxy_orig_left_in)
         );
 
@@ -583,17 +592,6 @@ module stw_wproxy_systolic
                     .top_in(selected_top_in),
                     .right_out(pe_right_out),
                     .bottom_out(pe_bottom_out[c][((r+1)*WORD_SIZE)-1 -: WORD_SIZE])
-
-                    // .stw_en(stw_en)
-                    // .multiplier_out(multiplier_out),
-                    // .top_in_reg(top_in_reg),
-                    // .left_in_reg(left_in_reg),
-                    // .accumulator_reg(accumulator_reg),
-
-                    // .adder_out(adder_out), 
-                    // .mult_op2_mux_out(mult_op2_mux_out),
-                    // .add_op2_mux_out(add_op2_mux_out),
-                    // .stationary_operand_reg(stationary_operand_reg)
                 );
             end
             else if (r==0)

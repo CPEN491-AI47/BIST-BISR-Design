@@ -21,7 +21,7 @@ module systolic_matmul_fsm
 
     //Start/done signals
     start_fsm,
-    start_matmul,
+    bisr_en,
     stw_en,
     fsm_done,
     fsm_rdy,
@@ -60,7 +60,7 @@ module systolic_matmul_fsm
     input start_fsm;
     input wr_output_rdy;
     input wr_output_done;
-    input start_matmul;
+    input bisr_en;
     input STW_complete;
     output reg stw_en;
     output reg fsm_done;
@@ -195,7 +195,7 @@ module systolic_matmul_fsm
                         // //Setup idx for matmul operation
                         // matmul_cycle <= {($clog2(ROWS)+4){1'b0}};
                         
-                        // if(start_matmul)
+                        // if(bisr_en)
                         //     state <= RUN_STW1;
 
                         state <= READ_TOP_MAT;
@@ -227,8 +227,10 @@ module systolic_matmul_fsm
                             //Setup idx for matmul operation
                             matmul_cycle <= {($clog2(ROWS)+4){1'b0}};
                             
-                            if(start_matmul)
+                            if(bisr_en)
                                 state <= RUN_STW1;
+                            else
+                                state <= MATMUL1;
                         end
                         else
                             state <= SET_STATIONARY;

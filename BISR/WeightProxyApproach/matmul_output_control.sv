@@ -29,7 +29,7 @@ module matmul_output_control
     //Signals for writing to memory
     mem_addr,
     mem_wr_en,
-    mem_data,
+    mem_data
 
     // outctrl_test,
     // outctrl_test1
@@ -104,7 +104,7 @@ module matmul_output_control
                 always @(posedge clk) begin
                     if(wr_en != 'b0)
                         output_matrix[r][c1] <= sa_output_matrix[r][c1] + proxy_output_matrix[r][c1];
-                        // output_matrix[r][c1] <= sa_output_matrix[r][c1];
+
                 end
             end
         end
