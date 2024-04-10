@@ -35,6 +35,7 @@ module bisr_systolic_top
     output_mem_addr,
     output_mem_wr_en,
 
+    fi_en
     // stw_en
     // stationary_operand_reg
     // multiplier_out,
@@ -116,7 +117,7 @@ module bisr_systolic_top
 
     //Signals for Fault Injection
     `ifdef ENABLE_FI
-        logic [(ROWS * COLS * 2) - 1:0] fault_inject_bus = 0;
+        logic [(ROWS * COLS * 2) - 1:0] fault_inject_bus = 'b0;
         logic [ROWS-1:0] fi_row;   //row to inject fault
         logic [COLS-1:0] fi_col;   //col to inject fault
     `endif
@@ -246,24 +247,37 @@ module bisr_systolic_top
 
 
   `ifdef ENABLE_FI
-    localparam NUM_FAULTS = 4;
+    localparam NUM_FAULTS = 1;
     // logic [(`ROWS*NUM_FAULTS)-1:0] fi_row_arr = {`ROWS'd1, `ROWS'd2, `ROWS'd3, `ROWS'd0};
     // logic [(`COLS*NUM_FAULTS)-1:0] fi_col_arr = {`COLS'd0, `COLS'd1, `COLS'd2, `COLS'd3};
-    logic [(`ROWS*NUM_FAULTS)-1:0] fi_row_arr = {`ROWS'd1}; //, `ROWS'd2, `ROWS'd3, `ROWS'd0};
-    logic [(`COLS*NUM_FAULTS)-1:0] fi_col_arr = {`COLS'd0}; //, `COLS'd1, `COLS'd2, `COLS'd3};
+    logic [(`ROWS*NUM_FAULTS)-1:0] fi_row_arr; // = {`ROWS'd0}; //, `ROWS'd2, `ROWS'd3, `ROWS'd0};
+    logic [(`COLS*NUM_FAULTS)-1:0] fi_col_arr; // = {`COLS'd0}; //, `COLS'd1, `COLS'd2, `COLS'd3};
 
-    assign fault_inject_bus[(1)*2 +: 2] = 2'b11;
+    input logic fi_en;
+    // assign fault_inject_bus[1:0] = 2'b11;
 
-      initial begin
-          for(integer f = 0; f < NUM_FAULTS; f++) begin
-                fi_row = fi_row_arr[(f*`ROWS) +: `ROWS];
-                fi_col = fi_col_arr[(f*`COLS) +: `COLS];
-            //   fi_row = fi_row_arr[f];
-            //   fi_col = fi_col_arr[f];
-              fault_inject_bus[(fi_col*`ROWS+fi_row)*2 +: 2] = 2'b11;
-              $display("Injected fault at col %0d, row %0d", fi_col, fi_row);
-          end
-      end
+    //   initial begin
+        always @(posedge clk) begin
+            if(rst) begin
+                fi_row_arr <= {`ROWS'd0};
+                fi_col_arr <= {`COLS'd0};
+                fault_inject_bus <= 'b0;
+            end
+            else if (fi_en) begin
+                for(integer f = 0; f < NUM_FAULTS; f++) begin
+                    fi_row <= fi_row_arr[(f*`ROWS) +: `ROWS];
+                    fi_col <= fi_col_arr[(f*`COLS) +: `COLS];
+                    //   fi_row = fi_row_arr[f];
+                    //   fi_col = fi_col_arr[f];
+                    fault_inject_bus[(fi_col*`ROWS+fi_row)*2 +: 2] <= 2'b11;
+                    // $display("Injected fault at col %0d, row %0d", fi_col, fi_row);
+                end
+            end
+            else begin
+                fault_inject_bus <= 'b0;
+            end
+        end
+    //   end
   `endif
 
     // output logic [1:0] fpe_idx_sel_test;
@@ -310,7 +324,7 @@ module bisr_systolic_top
 
         //Right_out/bottom_out outputs from systolic
         .bottom_out_bus(sa_curr_bottom_out),
-        .right_out_bus(right_out_bus),
+        .right_out_bus(right_out_bus)
 
     
         // .multiplier_out(multiplier_out),
