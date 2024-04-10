@@ -35,7 +35,7 @@ module bisr_systolic_top
     output_mem_addr,
     output_mem_wr_en,
 
-
+    // stw_en
     // stationary_operand_reg
     // multiplier_out,
     // top_in_reg
@@ -238,7 +238,7 @@ module bisr_systolic_top
         .wr_output_done(wr_output_done),
         .mem_addr(output_mem_addr),
         .mem_wr_en(output_mem_wr_en),
-        .mem_data(output_mem_wr_data),
+        .mem_data(output_mem_wr_data)
 
         // .outctrl_test(outctrl_test),
         // .outctrl_test1(outctrl_test1)
@@ -246,10 +246,14 @@ module bisr_systolic_top
 
 
   `ifdef ENABLE_FI
-      localparam NUM_FAULTS = 4;
-      logic [(`ROWS*NUM_FAULTS)-1:0] fi_row_arr = {`ROWS'd1, `ROWS'd2, `ROWS'd3, `ROWS'd0};
-      logic [(`COLS*NUM_FAULTS)-1:0] fi_col_arr = {`COLS'd0, `COLS'd1, `COLS'd2, `COLS'd3};
-  
+    localparam NUM_FAULTS = 4;
+    // logic [(`ROWS*NUM_FAULTS)-1:0] fi_row_arr = {`ROWS'd1, `ROWS'd2, `ROWS'd3, `ROWS'd0};
+    // logic [(`COLS*NUM_FAULTS)-1:0] fi_col_arr = {`COLS'd0, `COLS'd1, `COLS'd2, `COLS'd3};
+    logic [(`ROWS*NUM_FAULTS)-1:0] fi_row_arr = {`ROWS'd1}; //, `ROWS'd2, `ROWS'd3, `ROWS'd0};
+    logic [(`COLS*NUM_FAULTS)-1:0] fi_col_arr = {`COLS'd0}; //, `COLS'd1, `COLS'd2, `COLS'd3};
+
+    assign fault_inject_bus[(1)*2 +: 2] = 2'b11;
+
       initial begin
           for(integer f = 0; f < NUM_FAULTS; f++) begin
                 fi_row = fi_row_arr[(f*`ROWS) +: `ROWS];
@@ -265,6 +269,7 @@ module bisr_systolic_top
     // output logic [1:0] fpe_idx_sel_test;
     // output logic [ROWS-1:0] proxy_en_test;
     // output logic [WORD_SIZE-1:0] rcm_left_test;
+
     stw_wproxy_systolic #(
         .ROWS(ROWS),
         .COLS(COLS),
@@ -307,6 +312,7 @@ module bisr_systolic_top
         .bottom_out_bus(sa_curr_bottom_out),
         .right_out_bus(right_out_bus),
 
+    
         // .multiplier_out(multiplier_out),
         //             .top_in_reg(top_in_reg),
         //             .left_in_reg(left_in_reg),

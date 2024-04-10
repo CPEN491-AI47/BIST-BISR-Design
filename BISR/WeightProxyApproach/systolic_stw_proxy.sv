@@ -53,7 +53,7 @@ module stw_wproxy_systolic
     left_in_bus,
     top_in_bus,
     bottom_out_bus,
-    right_out_bus,
+    right_out_bus
 
     // stationary_operand_reg,
     // multiplier_out,
@@ -584,6 +584,7 @@ module stw_wproxy_systolic
                     .right_out(pe_right_out),
                     .bottom_out(pe_bottom_out[c][((r+1)*WORD_SIZE)-1 -: WORD_SIZE])
 
+                    // .stw_en(stw_en)
                     // .multiplier_out(multiplier_out),
                     // .top_in_reg(top_in_reg),
                     // .left_in_reg(left_in_reg),
