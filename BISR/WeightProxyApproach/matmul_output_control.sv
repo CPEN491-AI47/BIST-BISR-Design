@@ -29,7 +29,11 @@ module matmul_output_control
     //Signals for writing to memory
     mem_addr,
     mem_wr_en,
-    mem_data
+    mem_data,
+
+    memout_state_test,
+    row_idx,
+
 
     // outctrl_test,
     // outctrl_test1
@@ -136,7 +140,11 @@ module matmul_output_control
 
     //Write output matrix to memory row by row
     enum {IDLE, MEM_WR, MEM_WR_DELAY} mem_output_state;
-    logic [4:0] row_idx;   //hardcoded for 4x4 matrix
+
+    output logic [3:0] memout_state_test; //NOTE: revert
+    assign memout_state_test = mem_output_state;
+    output logic [4:0] row_idx;   //hardcoded for 4x4 matrix
+    
     output logic wr_output_rdy, wr_output_done;
     
     output logic [31:0] mem_addr;
@@ -150,6 +158,7 @@ module matmul_output_control
             row_idx <= 0;
             wr_output_rdy <= 1;
             wr_output_done <= 0;
+            mem_wr_en <= 0;
             mem_output_state <= IDLE;
         end
         else begin
@@ -158,6 +167,7 @@ module matmul_output_control
                     row_idx <= 0;
                     wr_output_rdy <= 1;
                     wr_output_done <= 0;
+                    mem_wr_en <= 0;
                     if(fsm_done && !fsm_rdy)
                         mem_output_state <= MEM_WR;
                 end
@@ -175,16 +185,20 @@ module matmul_output_control
                     end
                     else begin
                         wr_output_done <= 1;
+                        mem_wr_en <= 0;
                         mem_output_state <= IDLE;
                     end
                 end
 
                 MEM_WR_DELAY: begin
                     mem_delay <= mem_delay-1'b1;
+                    mem_wr_en <= 0;
                     if((mem_delay) == 'd0) begin
                         mem_output_state <= MEM_WR;
                     end
                 end
+
+                default: mem_output_state <= IDLE;
             endcase
         end
     end

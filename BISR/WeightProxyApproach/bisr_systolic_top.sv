@@ -11,11 +11,12 @@ module bisr_systolic_top
     rst,
     // top_matrix,   //Refactored to grabbing inputs from RAM
     // left_matrix,
-    inputs_rdy,
+    // inputs_rdy,
 
     start_fsm,
     bisr_en,
     fsm_rdy,
+    fsm_done,
 
     `ifdef ENABLE_STW
     STW_complete,
@@ -35,7 +36,10 @@ module bisr_systolic_top
     output_mem_addr,
     output_mem_wr_en,
 
-    fi_en
+    fi_en,
+    fsm_state_test,
+    memout_state_test,
+    row_idx
     // stw_en
     // stationary_operand_reg
     // multiplier_out,
@@ -75,6 +79,10 @@ module bisr_systolic_top
 
     // logic signed [WORD_SIZE - 1: 0] bus_out_col0; 
 
+    output logic [11:0] fsm_state_test;
+    output logic [3:0] memout_state_test; //NOTE: revert
+    output logic [4:0] row_idx;   //hardcoded for 4x4 matrix
+
 
     input clk;
     input rst;   //Active-high reset
@@ -82,11 +90,11 @@ module bisr_systolic_top
     // input [ROWS * COLS * WORD_SIZE - 1 : 0] top_matrix;
     // input logic [WORD_SIZE:0] left_matrix[ROWS][COLS];
     
-    input inputs_rdy;   //Input matrices in memory, matmul can begin anytime
+    // input inputs_rdy;   //Input matrices in memory, matmul can begin anytime
 
     input logic start_fsm, bisr_en;
     output logic fsm_rdy;
-    logic fsm_done;
+    output logic fsm_done;
     // assign start_fsm = inputs_rdy;   //NOTE: Double-check if this is always true
 
     //Systolic control settings
@@ -204,7 +212,9 @@ module bisr_systolic_top
 
         .mem_rd_data(mem_rd_data),
         .mem_addr(mem_addr),
-        .mem_wr_en(mem_wr_en)
+        .mem_wr_en(mem_wr_en),
+
+        .fsm_state_test(fsm_state_test)
     );
 
     // output logic signed [WORD_SIZE - 1:0] output_matrix[ROWS][COLS];
@@ -239,7 +249,10 @@ module bisr_systolic_top
         .wr_output_done(wr_output_done),
         .mem_addr(output_mem_addr),
         .mem_wr_en(output_mem_wr_en),
-        .mem_data(output_mem_wr_data)
+        .mem_data(output_mem_wr_data),
+
+        .memout_state_test(memout_state_test),
+        .row_idx(row_idx)
 
         // .outctrl_test(outctrl_test),
         // .outctrl_test1(outctrl_test1)
@@ -326,7 +339,7 @@ module bisr_systolic_top
         .bottom_out_bus(sa_curr_bottom_out),
         .right_out_bus(right_out_bus)
 
-    
+        
         // .multiplier_out(multiplier_out),
         //             .top_in_reg(top_in_reg),
         //             .left_in_reg(left_in_reg),

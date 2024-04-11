@@ -50,8 +50,11 @@ module systolic_matmul_fsm
     //Addresses/Signals for read/write from RAM
     mem_rd_data,
     mem_addr,
-    mem_wr_en
+    mem_wr_en,
+
+    fsm_state_test
 );
+   
 
     input clk;
     input rst;   //Active-high reset
@@ -108,8 +111,26 @@ module systolic_matmul_fsm
 
     assign matmul_output = bottom_out;   //Matrix multiplication output = bottom_out of systolic: Which part of bottom_out are valid outputs will be set by output_col_valid
 
+     output logic [11:0] fsm_state_test;
+    assign fsm_state_test = state;
+
     logic set_stat_done;
     //Control flow for setting stationary regs + Producing matrix multiplication outputs from systolic
+
+    // always @(*) begin
+    //     case(state)
+    //         INIT: fsm_rdy <= 1;
+    //         SET_STATIONARY: fsm_rdy <= 0;
+    //         RUN_STW1: fsm_rdy <= 0;
+    //         READ_TOP_MAT: fsm_rdy <= 0;
+    //         READ_TOP_MAT2: fsm_rdy <= 0;
+    //         MATMUL1: fsm_rdy <= 0;
+    //         MATMUL2: fsm_rdy <= 0;
+    //         READ_LEFT_MAT: fsm_rdy <= 0;
+    //         FINISH: fsm_rdy <= 1;
+    //     endcase
+    // end
+
     always_ff @(posedge clk) begin
         if(rst) begin
             fsm_done <= 0;
@@ -136,13 +157,17 @@ module systolic_matmul_fsm
 
                     stw_en <= 0;
                     fsm_done <= 0;
-                    fsm_rdy <= 1;
+                    
 
                     if(start_fsm && wr_output_rdy) begin
                         set_stat_start <= 1;
                         
                         fsm_rdy <= 0;
                         state <= SET_STATIONARY;
+                    end
+                    else begin
+                        fsm_rdy <= 1;
+                        state <= INIT;
                     end
                 end
 
@@ -313,6 +338,8 @@ module systolic_matmul_fsm
                         state <= INIT;
                     end
                 end
+
+                default: state <= INIT;
             endcase
         end
     end
