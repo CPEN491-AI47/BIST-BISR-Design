@@ -30,16 +30,16 @@ module tb_Top_BISR_STW_systolic();
     logic start_inputting = 1'b0;
 
     //input matrixs 
-    logic [`ROWS * `COLS * `WORD_SIZE - 1 : 0] top_matrix;
+    logic signed [`ROWS * `COLS * `WORD_SIZE - 1 : 0] top_matrix;
     `ifdef OS_WORKFLOW
-        logic [`ROWS * `COLS * `WORD_SIZE - 1 : 0] left_matrix; 
+        logic signed [`ROWS * `COLS * `WORD_SIZE - 1 : 0] left_matrix; 
     `else
-        logic [`WORD_SIZE:0] left_matrix[`ROWS][`COLS];
+        logic signed [`WORD_SIZE:0] left_matrix[`ROWS][`COLS];
     `endif 
 
     //outputs matrix 
-    logic [(`ROWS * `COLS * `WORD_SIZE) - 1:0] output_matrix;
-    logic [`WORD_SIZE:0] output_matrix_2D [`ROWS][`COLS];
+    logic signed [(`ROWS * `COLS * `WORD_SIZE) - 1:0] output_matrix;
+    logic signed [`WORD_SIZE:0] output_matrix_2D [`ROWS][`COLS];
     logic matrix_rdy;
 
     ////////////////////////////////////////////////////////////////////////////////////
@@ -81,15 +81,15 @@ module tb_Top_BISR_STW_systolic();
         end 
         else begin 
             //4x4 example 
-            top_matrix = {`WORD_SIZE'd7, `WORD_SIZE'd2, `WORD_SIZE'd3, `WORD_SIZE'd5,
-                        `WORD_SIZE'd4, `WORD_SIZE'd7, `WORD_SIZE'd8, `WORD_SIZE'd6,
-                        `WORD_SIZE'd2,`WORD_SIZE'd3, `WORD_SIZE'd12, `WORD_SIZE'd5, 
-                        `WORD_SIZE'd5,`WORD_SIZE'd1, `WORD_SIZE'd4, `WORD_SIZE'd9};
+            top_matrix = {{12'd0,8'b0001_1010,12'd0}, {12'd0,8'b0011_1010,12'd0}, {12'd0,8'b0011_1010,12'd0}, {12'd0,8'b0011_1010,12'd0},
+                        {12'd0,8'b0011_1010,12'd0}, {12'd0,8'b0001_1010,12'd0}, {12'd0,8'b0111_1010,12'd0}, {12'd0,8'b0000_1110,12'd0},
+                        {12'd0,8'b1001_1010,12'd0}, {12'd0,8'b0000_1010,12'd0}, {12'd0,8'b1001_0000,12'd0}, {12'd0,8'b0011_1011,12'd0},
+                        {12'd0,8'b0001_1010,12'd0}, {12'd0,8'b0000_0000,12'd0}, {12'd0,8'b0010_1011,12'd0}, {12'd0,8'b0000_1011,12'd0}};
             `ifdef OS_WORKFLOW
-                left_matrix = {`WORD_SIZE'd7, `WORD_SIZE'd2, `WORD_SIZE'd3, `WORD_SIZE'd5,
-                               `WORD_SIZE'd4, `WORD_SIZE'd7, `WORD_SIZE'd8, `WORD_SIZE'd6,
-                               `WORD_SIZE'd2,`WORD_SIZE'd3, `WORD_SIZE'd12, `WORD_SIZE'd5,
-                               `WORD_SIZE'd5,`WORD_SIZE'd1, `WORD_SIZE'd4, `WORD_SIZE'd9}; 
+                left_matrix =  {{12'd0,8'b0000_1010,12'd0}, {12'd0,8'b1000_0000,12'd0}, {12'd0,8'b0001_0000,12'd0}, {12'd0,8'b1001_1010,12'd0},
+                        {12'd0,8'b0101_0000,12'd0}, {12'd0,8'b1001_1010,12'd0}, {12'd0,8'b0101_1000,12'd0}, {12'd0,8'b0000_0000,12'd0},
+                        {12'd0,8'b0001_1011,12'd0}, {12'd0,8'b0000_0000,12'd0}, {12'd0,8'b0001_1010,12'd0}, {12'd0,8'b0011_1011,12'd0},
+                        {12'd0,8'b0001_0000,12'd0}, {12'd0,8'b0110_1110,12'd0}, {12'd0,8'b0010_1011,12'd0}, {12'd0,8'b0011_0000,12'd0}};
             `else
                  left_matrix = '{'{`WORD_SIZE'd7, `WORD_SIZE'd2, `WORD_SIZE'd3, `WORD_SIZE'd5},
                                  '{`WORD_SIZE'd4, `WORD_SIZE'd7, `WORD_SIZE'd8, `WORD_SIZE'd6},
@@ -112,14 +112,14 @@ module tb_Top_BISR_STW_systolic();
             `else
                 //Inject faulty MAC manually at array[0,1]
                 fi_row = 0;
-                fi_col = 1;
+                fi_col = 0;
                 fault_inject_bus[(fi_col*`ROWS+fi_row)*2 +: 2] = 2'b11;
                 $display("Injected fault at col %0d, row %0d", fi_col, fi_row);
                 fi_row = 2;
-                fi_col = 2;
+                fi_col = 3;
                 fault_inject_bus[(fi_col*`ROWS+fi_row)*2 +: 2] = 2'b11;
                 $display("Injected fault at col %0d, row %0d", fi_col, fi_row);
-                fi_row = 3;
+                fi_row = 1;
                 fi_col = 3;
                 fault_inject_bus[(fi_col*`ROWS+fi_row)*2 +: 2] = 2'b11;
                 $display("Injected fault at col %0d, row %0d", fi_col, fi_row);
@@ -156,19 +156,13 @@ module tb_Top_BISR_STW_systolic();
         `endif
 
         `ifdef ENABLE_STW
-            .STW_test_load_en(STW_test_load_en),
-            .STW_mult_op1(STW_mult_op1),
-            .STW_mult_op2(STW_mult_op2),
-            .STW_add_op(STW_add_op),
-            .STW_expected(STW_expected),
             .STW_start(STW_start),
-            .STW_complete_out(STW_complete),
         `endif
 
         .output_matrix(output_matrix),
         .matrix_rdy(matrix_rdy)
     );
-
+ localparam SF = 2.0**-16.0;
     ////////////////////////////////////////////////////////////////////////////////////
     /*
        Output display 
@@ -177,6 +171,7 @@ module tb_Top_BISR_STW_systolic();
     always #5 clk = ~clk;
     integer r, c, curr_output;
     initial begin
+        STW_start = 0;
         Matrix_Initilization();
         rst = 1'b1;
         @(negedge clk);
@@ -184,52 +179,9 @@ module tb_Top_BISR_STW_systolic();
         @(negedge clk);
         
         fault_injection();
-        $display("Output stationary matrix multiplication test");
-        $display("Top (weight) Matrix:");
-        for(integer r = 0; r < `ROWS; r++) begin
-           for(integer c = 0; c < `COLS; c++) begin
-                $write("%d ", top_matrix[(r*`COLS+c)*`WORD_SIZE +: `WORD_SIZE]);
-            end
-            $write("\n");
-        end
-
-        $display("Left (input) Matrix:");
-        for(integer r = 0; r < `ROWS; r++) begin
-           for(integer c = 0; c < `COLS; c++) begin
-               `ifdef OS_WORKFLOW
-                    $write("%d ", left_matrix[(r*`COLS+c)*`WORD_SIZE +: `WORD_SIZE]);
-                `else 
-                    $write("%d ", left_matrix[r][c]);
-                `endif
-            end
-            $write("\n");
-        end
-
-        wait(Top_BISR_STW_systolic_dut.output_col_valid != 0);
-        for (integer cycle = 0; cycle <= `COLS - 1; cycle ++)begin
-            @(negedge clk);
-        end 
-
-        matrix_conversion();
-        $display("Fault injected Output Matrix: left_matrix * top_matrix");
-        for(integer r = 0; r < `ROWS; r++) begin
-           for(integer c = 0; c < `COLS; c++) begin
-                $write("%d ", output_matrix_2D[r][c]);
-            end
-            $write("\n");
-        end
-
         //Start STW
+
         `ifdef ENABLE_STW
-            STW_test_load_en = 1;
-            STW_start = 0;
-            STW_mult_op1 = `WORD_SIZE'd4;
-            STW_mult_op2 = `WORD_SIZE'd3;
-            STW_add_op = `WORD_SIZE'd0;
-            STW_expected = `WORD_SIZE'd12;
-            @(posedge clk);
-            @(negedge clk);
-            STW_test_load_en = 0;
             STW_start = 1;
             @(posedge clk);
             @(negedge clk);
@@ -246,15 +198,32 @@ module tb_Top_BISR_STW_systolic();
             #15;
         `endif
 
-        @(posedge Top_BISR_STW_systolic_dut.ru_output_valid);
-        @(posedge clk);
-        @(posedge clk);
+        $display("Output stationary matrix multiplication test");
+        $display("Top (weight) Matrix:");
+        for(integer r = 0; r < `ROWS; r++) begin
+           for(integer c = 0; c < `COLS; c++) begin
+                $write("%.2f ", $itor(top_matrix[(r*`COLS+c)*`WORD_SIZE +: `WORD_SIZE]*SF));
+            end
+            $write("\n");
+        end
+        $display("Left (input) Matrix:");
+        for(integer r = 0; r < `ROWS; r++) begin
+           for(integer c = 0; c < `COLS; c++) begin
+               `ifdef OS_WORKFLOW
+                    $write("%.2f ", $itor(left_matrix[(r*`COLS+c)*`WORD_SIZE +: `WORD_SIZE]*SF));
+                `else 
+                    $write("%d ", left_matrix[r][c]);
+                `endif
+            end
+            $write("\n");
+        end
 
+        wait(matrix_rdy == 1);
         matrix_conversion();
         $display("BISR Output Matrix: left_matrix * top_matrix");
         for(integer r = 0; r < `ROWS; r++) begin
            for(integer c = 0; c < `COLS; c++) begin
-                $write("%d ", output_matrix_2D[r][c]);
+                $write("%.2f ", $itor(output_matrix_2D[r][c]*SF));
             end
             $write("\n");
         end

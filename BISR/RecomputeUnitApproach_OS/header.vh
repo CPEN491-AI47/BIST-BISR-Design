@@ -1,5 +1,5 @@
 // Array & Word size initilization
-    `define WORD_SIZE 16
+    `define WORD_SIZE 32
     `define ROWS 4
     `define COLS 4
     `define NUM_RU 4

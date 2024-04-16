@@ -1,0 +1,114 @@
+C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/tb_recompute_unit_controller_os.sv {1 {vlog -work work -sv -stats=none C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/tb_recompute_unit_controller_os.sv
+Model Technology ModelSim - Intel FPGA Edition vlog 10.5b Compiler 2016.10 Oct  5 2016
+-- Compiling module tb_recompute_unit_controller_os
+
+Top level modules:
+	tb_recompute_unit_controller_os
+
+} {} {}} C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/traditional_mac_stw.v {1 {vlog -work work -stats=none C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/traditional_mac_stw.v
+Model Technology ModelSim - Intel FPGA Edition vlog 10.5b Compiler 2016.10 Oct  5 2016
+-- Compiling module traditional_mac_stw
+
+Top level modules:
+	traditional_mac_stw
+
+} {} {}} C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/systolic_matmul_fsm.sv {1 {vlog -work work -sv -stats=none C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/systolic_matmul_fsm.sv
+Model Technology ModelSim - Intel FPGA Edition vlog 10.5b Compiler 2016.10 Oct  5 2016
+-- Compiling module systolic_matmul_fsm
+
+Top level modules:
+	systolic_matmul_fsm
+
+} {} {}} {C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/tb_recompute module.sv} {1 {vlog -work work -sv -stats=none {C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/tb_recompute module.sv}
+Model Technology ModelSim - Intel FPGA Edition vlog 10.5b Compiler 2016.10 Oct  5 2016
+-- Compiling module tb_recompute_module
+
+Top level modules:
+	tb_recompute_module
+
+} {} {}} C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/pe_stw.v {1 {vlog -work work -stats=none C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/pe_stw.v
+Model Technology ModelSim - Intel FPGA Edition vlog 10.5b Compiler 2016.10 Oct  5 2016
+-- Compiling module pe_stw
+
+Top level modules:
+	pe_stw
+
+} {} {}} C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/traditional_systolic.v {1 {vlog -work work -stats=none C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/traditional_systolic.v
+Model Technology ModelSim - Intel FPGA Edition vlog 10.5b Compiler 2016.10 Oct  5 2016
+-- Compiling module traditional_mac
+-- Compiling module traditional_systolic
+
+Top level modules:
+	traditional_systolic
+
+} {} {}} C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/recompute_input_controller.v {0 {vlog -work work -stats=none C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/recompute_input_controller.v
+Model Technology ModelSim - Intel FPGA Edition vlog 10.5b Compiler 2016.10 Oct  5 2016
+-- Compiling module recompute_unit_controller
+** Error (suppressible): C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/recompute_input_controller.v(95): (vlog-2388) 'c' already declared in this scope (recompute_unit_controller).
+
+} {} {}} C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/stw_mac_tb.sv {1 {vlog -work work -sv -stats=none C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/stw_mac_tb.sv
+Model Technology ModelSim - Intel FPGA Edition vlog 10.5b Compiler 2016.10 Oct  5 2016
+-- Compiling module traditional_mac_stw
+-- Compiling module mac_stw_tb
+
+Top level modules:
+	mac_stw_tb
+
+} {} {}} C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/systolic_output_regfile.v {0 {vlog -work work -stats=none C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/systolic_output_regfile.v
+Model Technology ModelSim - Intel FPGA Edition vlog 10.5b Compiler 2016.10 Oct  5 2016
+-- Compiling module systolic_output_regfile
+** Error: C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/systolic_output_regfile.v(10): (vlog-2110) Illegal reference to memory "systolic_output".
+
+} {4.0 5.0} {}} C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/systolic_stw.v {1 {vlog -work work -stats=none C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/systolic_stw.v
+Model Technology ModelSim - Intel FPGA Edition vlog 10.5b Compiler 2016.10 Oct  5 2016
+-- Compiling module traditional_mac_stw
+-- Compiling module traditional_systolic_stw
+
+Top level modules:
+	traditional_mac_stw
+	traditional_systolic_stw
+
+} {} {}} C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/recompute_module.v {1 {vlog -work work -stats=none C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/recompute_module.v
+Model Technology ModelSim - Intel FPGA Edition vlog 10.5b Compiler 2016.10 Oct  5 2016
+-- Compiling module recompute_module
+
+Top level modules:
+	recompute_module
+
+} {} {}} C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/matmul_output_control.sv {1 {vlog -work work -sv -stats=none C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/matmul_output_control.sv
+Model Technology ModelSim - Intel FPGA Edition vlog 10.5b Compiler 2016.10 Oct  5 2016
+-- Compiling module matmul_output_control
+
+Top level modules:
+	matmul_output_control
+
+} {} {}} C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/traditional_mac.v {1 {vlog -work work -stats=none C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/traditional_mac.v
+Model Technology ModelSim - Intel FPGA Edition vlog 10.5b Compiler 2016.10 Oct  5 2016
+-- Compiling module traditional_mac
+
+Top level modules:
+	traditional_mac
+
+} {} {}} C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/stw_matmul_tb.sv {0 {vlog -work work -sv -stats=none C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/stw_matmul_tb.sv
+Model Technology ModelSim - Intel FPGA Edition vlog 10.5b Compiler 2016.10 Oct  5 2016
+-- Compiling module stw_matmul_tb
+** Error (suppressible): C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/stw_matmul_tb.sv(23): (vlog-13174) Illegal assignment pattern. The number of elements (3) doesn't match with the type's width (4).
+** Error (suppressible): C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/stw_matmul_tb.sv(24): (vlog-13174) Illegal assignment pattern. The number of elements (3) doesn't match with the type's width (4).
+** Error (suppressible): C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/stw_matmul_tb.sv(25): (vlog-13174) Illegal assignment pattern. The number of elements (3) doesn't match with the type's width (4).
+** Error (suppressible): C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/stw_matmul_tb.sv(25): (vlog-13174) Illegal assignment pattern. The number of elements (3) doesn't match with the type's width (4).
+** Error (suppressible): C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/stw_matmul_tb.sv(34): (vlog-13174) Illegal assignment pattern. The number of elements (3) doesn't match with the type's width (4).
+** Error (suppressible): C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/stw_matmul_tb.sv(35): (vlog-13174) Illegal assignment pattern. The number of elements (3) doesn't match with the type's width (4).
+** Error (suppressible): C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/stw_matmul_tb.sv(36): (vlog-13174) Illegal assignment pattern. The number of elements (3) doesn't match with the type's width (4).
+** Error (suppressible): C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/stw_matmul_tb.sv(36): (vlog-13174) Illegal assignment pattern. The number of elements (3) doesn't match with the type's width (4).
+
+} {} {}} C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/BISR_STW_systolic.v {0 {vlog -work work -stats=none C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/BISR_STW_systolic.v
+Model Technology ModelSim - Intel FPGA Edition vlog 10.5b Compiler 2016.10 Oct  5 2016
+-- Compiling module BISR_STW_systolic
+** Error: C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/BISR_STW_systolic.v(119): (vlog-2730) Undefined variable: 'c'.
+** Error: C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/BISR_STW_systolic.v(119): 'c' is an invalid type in Generate loop. Must be a genvar.
+** Error: (vlog-13069) C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/BISR_STW_systolic.v(120): near "]": syntax error, unexpected ']'.
+** Error: C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/BISR_STW_systolic.v(121): (vlog-2730) Undefined variable: 'systolic_ru_map_reg'.
+** Error: (vlog-13069) C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/BISR_STW_systolic.v(122): near "end": syntax error, unexpected end.
+** Error: C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/BISR_STW_systolic.v(123): (vlog-13205) Syntax error found in the scope following 'ru_idx'. Is there a missing '::'?
+
+} {4.0 10.0} {}}

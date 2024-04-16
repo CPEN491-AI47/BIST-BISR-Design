@@ -22,6 +22,7 @@ module recompute_unit_controller_os
     input [(ROWS*COLS)-1:0] STW_result_mat,
     //input [WORD_SIZE-1:0] systolic_output_reg [COLS-1:0];
 
+    input matrix_start,
     // RU input buses and control signals to RU module
     output reg [NUM_RU-1:0] ru_en,
     output reg [NUM_RU * WORD_SIZE - 1 : 0] ru_top_inputs,
@@ -131,14 +132,16 @@ module recompute_unit_controller_os
                 case(ru_state[idx*2 +: 2])
                     `RU_IDLE: begin
                         //restart another computation
-                        if(ru_en[idx] && !wait_mul[idx]) begin
-                            //Settings for RU to set stationary reg for OS workflow
-                            ru_left_inputs[(idx*WORD_SIZE) +: WORD_SIZE] <= left_matrix[((ru_col_mapping[(idx*NUM_BITS_COLS) +: NUM_BITS_COLS])*WORD_SIZE) +: WORD_SIZE];
-                            ru_top_inputs[(idx*WORD_SIZE) +: WORD_SIZE] <= top_matrix[(((ru_row_mapping[(idx*NUM_BITS_COLS) +: NUM_BITS_COLS])*COLS)*WORD_SIZE) +: WORD_SIZE];
-                    
-                            n_cycle[idx*NUM_BITS_COLS +: NUM_BITS_COLS] <= n_cycle[idx*NUM_BITS_COLS +: NUM_BITS_COLS] + 1'b1;
-                            ru_state[idx*2 +: 2] <= `RU_FEED_INPUT_BUSES;
-                        end
+                        if(matrix_start)begin
+                            if(ru_en[idx] && !wait_mul[idx]) begin
+                                //Settings for RU to set stationary reg for OS workflow
+                                ru_left_inputs[(idx*WORD_SIZE) +: WORD_SIZE] <= left_matrix[((ru_col_mapping[(idx*NUM_BITS_COLS) +: NUM_BITS_COLS])*WORD_SIZE) +: WORD_SIZE];
+                                ru_top_inputs[(idx*WORD_SIZE) +: WORD_SIZE] <= top_matrix[(((ru_row_mapping[(idx*NUM_BITS_COLS) +: NUM_BITS_COLS])*COLS)*WORD_SIZE) +: WORD_SIZE];
+                        
+                                n_cycle[idx*NUM_BITS_COLS +: NUM_BITS_COLS] <= n_cycle[idx*NUM_BITS_COLS +: NUM_BITS_COLS] + 1'b1;
+                                ru_state[idx*2 +: 2] <= `RU_FEED_INPUT_BUSES;
+                            end
+                        end 
                     end
                     `RU_FEED_INPUT_BUSES: begin
                         //Settings for RU to do matmul

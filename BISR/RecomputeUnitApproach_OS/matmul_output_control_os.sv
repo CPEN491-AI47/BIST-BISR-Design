@@ -60,42 +60,21 @@ module matmul_output_control_os
                     end 
 
                     //if no faulty PE identifies, matrix rdy after #ROW of cycles upon output is valid
-                    if(STW_result_mat == {{ROWS*COLS}{1'b1}})begin 
-                        if(write_count == ROWS - 1'b1)
-                            matrix_rdy <= 1'b1;
-                        else 
-                            matrix_rdy <= 1'b0;
-                    end 
                     
-                    //else if faulty PE is identified, we wait for ru output to be valid
-                    else begin
-                        if(ru_output_valid != 0)
-                            matrix_rdy <= 1'b1;
-                        else 
-                            matrix_rdy <= 1'b0; 
-                    end 
+                    if(write_count == ROWS - 1'b1)
+                        matrix_rdy <= 1'b1;
+                    else 
+                        matrix_rdy <= 1'b0;
+                    
+                    
+                    // //else if faulty PE is identified, we wait for ru output to be valid
+                    // else begin
+                    //     if(ru_output_valid != 0)
+                    //         matrix_rdy <= 1'b1;
+                    //     else 
+                    //         matrix_rdy <= 1'b0; 
+                    // end 
                 end 
         end
-
-    //generate
-    //     always @(posedge clk) begin
-    //         for( ru_idx = 0; ru_idx < NUM_RU; ru_idx = ru_idx + 1)begin
-    //             if(!rst)begin
-    //                 if(ru_output_valid[ru_idx] == 1'b1)
-    //                     output_matrix[((ru_row_mapping[ru_idx]*COLS+ru_col_mapping[ru_idx]) * WORD_SIZE) +: `WORD_SIZE] <= rcm_bottom_out[ru_idx* WORD_SIZE +: WORD_SIZE]; 
-    //             end    
-    //          end 
-    //     end
-    // //endgenerate
-
-    //Check for if output matrix is ready  
-    // always @(posedge clk)begin
-    //     if(&STW_result_mat) begin
-    //         if(output_col_valid)begin
-
-    //         end 
-    //     end 
-
-    // end 
 
 endmodule

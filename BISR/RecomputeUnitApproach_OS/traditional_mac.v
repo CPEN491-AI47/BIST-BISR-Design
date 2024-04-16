@@ -53,13 +53,15 @@ wire [WORD_SIZE - 1: 0] multiplier_out;
 wire [WORD_SIZE - 1: 0] adder_out; 
 wire [WORD_SIZE - 1: 0] mult_op2_mux_out;
 wire [WORD_SIZE - 1: 0] add_op2_mux_out;
+wire [63:0] mul_raw;
 
 assign right_out = left_in_reg;
 assign bottom_out = (fsm_out_select_in == 1'b0) ? {tie_low[WORD_SIZE - 1: 0] | top_in_reg} : accumulator_reg;
+assign mul_raw = left_in_reg * mult_op2_mux_out;
 
 `ifdef ENABLE_FI
     //Stuck-at fault injected after multiply and before add
-    assign multiplier_out = (fault_inject[0]) ? stuck_at : (left_in_reg * mult_op2_mux_out);
+    assign multiplier_out = (fault_inject[0]) ? stuck_at : (mul_raw[47:16]);
     // always @(*) begin
     //     if(fault_inject[0] == 1'b1)
     //         multiplier_out = stuck_at;
@@ -68,7 +70,7 @@ assign bottom_out = (fsm_out_select_in == 1'b0) ? {tie_low[WORD_SIZE - 1: 0] | t
     // end 
     
 `else
-    assign multiplier_out = left_in_reg * mult_op2_mux_out;
+    assign multiplier_out = mul_raw[47:16];
 `endif
 
 assign adder_out = multiplier_out + add_op2_mux_out;
