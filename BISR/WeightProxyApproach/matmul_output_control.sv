@@ -39,6 +39,7 @@ module matmul_output_control
     // outctrl_test1
 );
     localparam ADDR_WIDTH = $clog2(ROWS*COLS);
+    localparam ROW_WIDTH = $clog2(ROWS);
 
     // output logic signed [WORD_SIZE - 1: 0] outctrl_test;
     // output logic signed [WORD_SIZE - 1: 0] outctrl_test1; 
@@ -61,13 +62,16 @@ module matmul_output_control
 
 
     logic [$clog2(ROWS):0] write_count[COLS] = '{default: '0};
-    logic [$clog2(ROWS):0] proxy_write_count[COLS] = '{default: '0};
+    logic [$clog2(ROWS)-1:0] proxy_write_count[COLS] = '{default: '0};
     logic [COLS-1:0] wr_en = '{default: '0};
+    logic clear_prev_output;
     
     logic [$clog2(COLS):0] c;
     always @(posedge clk) begin
         for(c = 0; c < COLS; c++) begin
-            if(matmul_output_valid[c] && !stall) begin
+            if(rst)
+                wr_en[c] <= 1'b0;
+            else if(!clear_prev_output && matmul_output_valid[c] && !stall) begin
                 wr_en[c] <= ~wr_en[c];   //wr_en[c] serves as timing for when to write to output_matrix col c
             end
             else begin
@@ -83,7 +87,7 @@ module matmul_output_control
         for(proxy_wr_en_idx=0; proxy_wr_en_idx < COLS; proxy_wr_en_idx = proxy_wr_en_idx+1) begin
             if(rst)
                 proxy_wr_en[proxy_wr_en_idx] <= 1'b0;
-            else if(proxy_out_valid_bus[proxy_wr_en_idx] && !stall)
+            else if(!clear_prev_output && proxy_out_valid_bus[proxy_wr_en_idx] && !stall)
                 proxy_wr_en[proxy_wr_en_idx] <= ~proxy_wr_en[proxy_wr_en_idx];
             else
                 proxy_wr_en[proxy_wr_en_idx] <= 1'b0;
@@ -91,22 +95,33 @@ module matmul_output_control
     end
 
     logic signed [(COLS*WORD_SIZE)-1:0] output_mat_by_row [ROWS-1:0];
+    logic [ROW_WIDTH:0] rst_row_sa, rst_row_proxy;
 
     genvar r, c1, proxy_c;
     generate
-        for(c1 = 0; c1 < COLS; c1++) begin : write_sa_out_genblk
-            always @(posedge clk) begin     
-                if(wr_en[c1]) begin     //sa_output_matrix[rows][c1] "clocked" by wr_en[c1]
-                    if(matmul_output_valid[c1]) begin
-                        write_count[c1] <= write_count[c1]+1'b1;   //Tracks what row of output_matrix we are writing to for col c1
-                        sa_output_matrix[write_count[c1]][c1] <= sa_output_matrix[write_count[c1]][c1] + matmul_fsm_output[c1 * WORD_SIZE +: WORD_SIZE];   //Update output matrix
+        for(c1 = 0; c1 < COLS; c1=c1+1) begin : write_sa_out_genblk
+            always @(posedge clk) begin
+               
+                if(clear_prev_output) begin
+
+                    for(rst_row_sa = 0; rst_row_sa < ROWS; rst_row_sa=rst_row_sa+1) begin
+                        sa_output_matrix[rst_row_sa][c1] <= 'b0;
                     end
+
+                    write_count[c1] <= 'b0;
+                end  
+                if(wr_en[c1] && matmul_output_valid[c1]) begin     //sa_output_matrix[rows][c1] "clocked" by wr_en[c1]
+
+                    write_count[c1] <= write_count[c1]+1'b1;   //Tracks what row of output_matrix we are writing to for col c1
+                    sa_output_matrix[write_count[c1]][c1] <= sa_output_matrix[write_count[c1]][c1] + matmul_fsm_output[c1 * WORD_SIZE +: WORD_SIZE];   //Update output matrix 
                 end
             end
 
             for(r = 0; r < ROWS; r=r+1) begin : write_total_out_genblk
                 always @(posedge clk) begin
-                    if(wr_en != 'b0)
+                    if(clear_prev_output)
+                        output_matrix[r][c1] <= 'b0;
+                    else if(wr_en != 'b0)
                         output_matrix[r][c1] <= sa_output_matrix[r][c1] + proxy_output_matrix[r][c1];
 
                 end
@@ -115,10 +130,16 @@ module matmul_output_control
 
         for(proxy_c=0; proxy_c < COLS; proxy_c=proxy_c+1) begin : write_proxy_out_genblk
              always @(posedge clk) begin
-                if(proxy_wr_en[proxy_c]) begin   //proxy_output "clocked" by proxy_wr_en
+                if(clear_prev_output) begin
+                    for(rst_row_proxy = 0; rst_row_proxy < ROWS; rst_row_proxy=rst_row_proxy+1) begin
+                        proxy_output_matrix[rst_row_proxy][proxy_c] <= 'b0;
+                        proxy_write_count[proxy_c] <= 'b0;
+                    end
+                end  
+                else if(proxy_wr_en[proxy_c]) begin   //proxy_output "clocked" by proxy_wr_en
                     if(proxy_out_valid_bus[proxy_c]) begin
-                        
-                        proxy_output_matrix[proxy_write_count[proxy_c]][proxy_c] <= proxy_output_matrix[proxy_write_count[proxy_c]][proxy_c] + proxy_output_bus[proxy_c * WORD_SIZE +: WORD_SIZE];   //Update output matrix
+                        // proxy_output_matrix[proxy_write_count[proxy_c]][proxy_c] <= proxy_output_matrix[proxy_write_count[proxy_c]][proxy_c] + proxy_output_bus[proxy_c * WORD_SIZE +: WORD_SIZE];   //Update output matrix
+                        proxy_output_matrix[proxy_write_count[proxy_c]][proxy_c] <= proxy_output_bus[proxy_c * WORD_SIZE +: WORD_SIZE];   //Update output matrix
                         proxy_write_count[proxy_c] <= proxy_write_count[proxy_c]+1'b1;   //Tracks what row of output_matrix we are writing to for this proxy
                     end
                 end
@@ -139,7 +160,7 @@ module matmul_output_control
     
 
     //Write output matrix to memory row by row
-    enum {IDLE, MEM_WR, MEM_WR_DELAY} mem_output_state;
+    enum {IDLE, MEM_WR, MEM_WR_DELAY, WAIT_MEM_CLEAR} mem_output_state;
 
     output logic [3:0] memout_state_test; //NOTE: revert
     assign memout_state_test = mem_output_state;
@@ -152,13 +173,14 @@ module matmul_output_control
     output logic signed [`MEM_PORT_WIDTH-1:0] mem_data;
     
     logic [2:0] mem_delay;   //Num clk cycles left to stall until memory access value available
-
+    
     always @(posedge clk) begin
         if(rst) begin
             row_idx <= 0;
             wr_output_rdy <= 1;
             wr_output_done <= 0;
             mem_wr_en <= 0;
+            clear_prev_output <= 0;
             mem_output_state <= IDLE;
         end
         else begin
@@ -168,12 +190,22 @@ module matmul_output_control
                     wr_output_rdy <= 1;
                     wr_output_done <= 0;
                     mem_wr_en <= 0;
-                    if(fsm_done && !fsm_rdy)
+                    clear_prev_output <= 0;
+                    if(fsm_done && !fsm_rdy) begin
+                        // clear_prev_output <= 1;
                         mem_output_state <= MEM_WR;
+                        // mem_output_state <= WAIT_MEM_CLEAR;
+                    end
+                end
+
+                WAIT_MEM_CLEAR: begin
+                    clear_prev_output <= 0;
+                    mem_output_state <= IDLE;
                 end
 
                 MEM_WR: begin
                     wr_output_rdy <= 0;
+                    clear_prev_output <= 0;
                     if(row_idx < ROWS) begin
                         mem_addr <= `OUTPUT_MAT_BASE_ADDR + (row_idx * `MEM_ADDR_INCR);
                         mem_data <= output_mat_by_row[row_idx];
@@ -186,11 +218,15 @@ module matmul_output_control
                     else begin
                         wr_output_done <= 1;
                         mem_wr_en <= 0;
-                        mem_output_state <= IDLE;
+                        // mem_output_state <= IDLE;
+                        clear_prev_output <= 1;
+                        // mem_output_state <= MEM_WR;
+                        mem_output_state <= WAIT_MEM_CLEAR;
                     end
                 end
 
                 MEM_WR_DELAY: begin
+                    clear_prev_output <= 0;
                     mem_delay <= mem_delay-1'b1;
                     mem_wr_en <= 0;
                     if((mem_delay) == 'd0) begin
