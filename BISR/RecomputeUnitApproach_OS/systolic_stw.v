@@ -14,7 +14,7 @@ module traditional_systolic_stw
 ) (
     clk,
     rst,
-
+    sys_rst,
     ctl_stat_bit_in, 
     ctl_dummy_fsm_op2_select_in,
     ctl_dummy_fsm_out_select_in,
@@ -39,11 +39,12 @@ module traditional_systolic_stw
 
 input clk;
 input rst;
+input sys_rst;
 
-input [ROWS * WORD_SIZE - 1: 0] left_in_bus;
-input [COLS * WORD_SIZE - 1: 0] top_in_bus;
-output [COLS * WORD_SIZE - 1: 0] bottom_out_bus;
-output [ROWS * WORD_SIZE - 1: 0] right_out_bus;
+input signed [ROWS * WORD_SIZE - 1: 0] left_in_bus;
+input signed [COLS * WORD_SIZE - 1: 0] top_in_bus;
+output signed [COLS * WORD_SIZE - 1: 0] bottom_out_bus;
+output signed [ROWS * WORD_SIZE - 1: 0] right_out_bus;
 
 input ctl_stat_bit_in; 
 input ctl_dummy_fsm_op2_select_in;
@@ -94,6 +95,7 @@ for(r = 0; r < ROWS; r = r+1) begin : mac_row_genblk
             ) u_mac(
                 .clk(clk),
                 .rst(rst),
+                .sys_rst(sys_rst),
                 .fsm_op2_select_in(ctl_dummy_fsm_op2_select_in),
                 .fsm_out_select_in(ctl_dummy_fsm_out_select_in),
                 .stat_bit_in(ctl_stat_bit_in),
@@ -127,6 +129,7 @@ for(r = 0; r < ROWS; r = r+1) begin : mac_row_genblk
             ) u_mac(
                 .clk(clk),
                 .rst(rst),
+                .sys_rst(sys_rst),
                 .fsm_op2_select_in(ctl_dummy_fsm_op2_select_in),
                 .fsm_out_select_in(ctl_dummy_fsm_out_select_in),
                 .stat_bit_in(ctl_stat_bit_in),
@@ -159,6 +162,7 @@ for(r = 0; r < ROWS; r = r+1) begin : mac_row_genblk
             ) u_mac(
                 .clk(clk),
                 .rst(rst),
+                .sys_rst(sys_rst),
                 .fsm_op2_select_in(ctl_dummy_fsm_op2_select_in),
                 .fsm_out_select_in(ctl_dummy_fsm_out_select_in),
                 .stat_bit_in(ctl_stat_bit_in),
@@ -192,6 +196,7 @@ for(r = 0; r < ROWS; r = r+1) begin : mac_row_genblk
             ) u_mac(
                 .clk(clk),
                 .rst(rst),
+                .sys_rst(sys_rst),
                 .fsm_op2_select_in(ctl_dummy_fsm_op2_select_in),
                 .fsm_out_select_in(ctl_dummy_fsm_out_select_in),
                 .stat_bit_in(ctl_stat_bit_in),

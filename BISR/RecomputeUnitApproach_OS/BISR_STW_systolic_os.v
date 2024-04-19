@@ -14,6 +14,7 @@ module BISR_STW_systolic_os
 ) (
     input clk,
     input rst,
+    input sys_rst,
 
     //Systolic Inputs/Outputs
     input ctl_stat_bit_in, 
@@ -31,6 +32,7 @@ module BISR_STW_systolic_os
         input [WORD_SIZE-1:0] STW_expected,
         input STW_test_load_en,
         input STW_start,
+        input matrix_start,
         output STW_complete_out,
         output wire [(ROWS*COLS)-1:0] STW_result_mat, //[COLS-1:0];
     `endif
@@ -55,6 +57,7 @@ module BISR_STW_systolic_os
     wire [NUM_RU-1:0] ru_en;   //Enable signals for redundant units (1 per col)
     wire [(NUM_RU * WORD_SIZE)-1 : 0] ru_top_inputs;
     wire [(NUM_RU * WORD_SIZE)-1 : 0] ru_left_inputs;   //ru_left_in also indexed by col, where ru_left_inputs[(c*WORD_SIZE)+:WORD_SIZE] = left_in for RU of col c
+    wire systoli_rst;
 
     //reg [(COLS * WORD_SIZE)-1: 0] systolic_bottom_out;
 
@@ -63,9 +66,6 @@ module BISR_STW_systolic_os
     wire [NUM_RU-1:0] ru_set_stationary;
     wire [NUM_RU-1:0] ru_fsm_out_sel_in;
     wire [NUM_RU-1:0] ru_stat_bit_in;
-
-
-
     recompute_unit_controller_os #(ROWS, COLS, WORD_SIZE, NUM_RU) rcm_os(    //Number of redundant units
         .clk(clk),
         .rst(rst),
@@ -73,6 +73,7 @@ module BISR_STW_systolic_os
         .top_matrix(top_matrix),
         .left_matrix(left_matrix),
         
+        .matrix_start(matrix_start),
         .STW_result_mat(STW_result_mat),
         //input [WORD_SIZE-1:0] systolic_output_reg [COLS-1:0];
 
@@ -91,24 +92,6 @@ module BISR_STW_systolic_os
 
     );  
 
-    // genvar ru_idx;
-    // generate
-    // //Assign bottom_out to take either output from RU (if error detected - ru_en == 1) or original systolic
-    // //FIXME: Continue here - Use ru_col_mapping to correct this
-    // for(c = 0; c < COLS; c=c+1) begin
-    //     always @(systolic_ru_map_reg[])
-    //     if(systolic_ru_map_reg)
-    // end
-    // for(ru_idx = 0; ru_idx < NUM_RU; ru_idx = ru_idx+1) begin
-    //     if(ru_en[ru_idx] ) begin
-    //         assign bottom_out_bus[(ru_col_map_reg[ru_idx]*WORD_SIZE) +: WORD_SIZE] = 
-    //     end
-    //     else begin
-    //         assign bottom_out_bus[(c*WORD_SIZE) +: WORD_SIZE] = ru_en[c] ? rcm_bottom_out[(c*WORD_SIZE) +: WORD_SIZE] : systolic_bottom_out[(c*WORD_SIZE) +: WORD_SIZE];
-    //     end
-    // end
-    // endgenerate
-
     recompute_module #(ROWS, COLS, WORD_SIZE, NUM_RU) rcm (
         .clk(clk),
         .rst(rst),
@@ -126,6 +109,7 @@ module BISR_STW_systolic_os
     traditional_systolic_stw #(ROWS, COLS, WORD_SIZE) stw_systolic (
         .clk(clk),
         .rst(rst),
+        .sys_rst(sys_rst),
         .ctl_stat_bit_in(ctl_stat_bit_in), 
         .ctl_dummy_fsm_op2_select_in(ctl_dummy_fsm_op2_select_in),
         .ctl_dummy_fsm_out_select_in(ctl_dummy_fsm_out_select_in),
@@ -141,7 +125,7 @@ module BISR_STW_systolic_os
             .STW_add_op(STW_add_op),
             .STW_expected(STW_expected),
             .STW_start(STW_start),
-            .STW_complete_out(STW_complete),
+            .STW_complete_out(STW_complete_out),
             .STW_result_mat(STW_result_mat),
         `endif
 
@@ -152,11 +136,4 @@ module BISR_STW_systolic_os
     );
     
     wire [WORD_SIZE-1:0] systolic_output [COLS-1:0];
-    // systolic_output_regfile #(`COLS, `WORD_SIZE) output_reg (
-    //     .clk(clk),
-    //     .rst(rst),
-    //     .wr_data(systolic_bottom_out),   //Change input if RU en
-    //     .wr_idx({`COLS{STW_complete}}),   //Write as long as STW isn't in progress
-    //     .systolic_output(systolic_output)
-    // );
 endmodule

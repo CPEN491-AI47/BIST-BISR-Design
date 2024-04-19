@@ -1,0 +1,323 @@
+m255
+K4
+z2
+13
+!s112 1.1
+!i10d 8192
+!i10e 25
+!i10f 100
+cModel Technology
+dC:/Users/Mia/Documents/capstone/STW_Modelsim
+vBISR_STW_systolic
+Z0 !s110 1710967526
+!i10b 1
+!s100 h[E0kIQk]VVeZATof7NlC0
+I8oPD=@dL9hHgR[WXePRHY3
+Z1 VDg1SIo80bB@j0V0VzS_@n1
+Z2 dC:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach
+w1710964621
+8C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/BISR_STW_systolic_os.v
+FC:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/BISR_STW_systolic_os.v
+L0 8
+Z3 OV;L;10.5b;63
+r1
+!s85 0
+31
+Z4 !s108 1710967526.000000
+!s107 ./header_ws.vh|C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/BISR_STW_systolic_os.v|
+!s90 -reportprogress|300|-work|work|-stats=none|C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/BISR_STW_systolic_os.v|
+!i113 1
+Z5 o-work work
+Z6 tCvgOpt 0
+n@b@i@s@r_@s@t@w_systolic
+vmac_stw_tb
+Z7 DXx6 sv_std 3 std 0 22 AD7iAPLo6nTIKk<N0eo=D3
+Z8 !s110 1710967524
+!i10b 1
+!s100 <m?G36AI?jahW>BXeOS5H2
+IGM@6HHi3jAL]E9?InCKgA2
+R1
+!s105 stw_mac_tb_sv_unit
+S1
+R2
+Z9 w1709586349
+8C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/stw_mac_tb.sv
+FC:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/stw_mac_tb.sv
+L0 7
+R3
+r1
+!s85 0
+31
+Z10 !s108 1710967524.000000
+!s107 ./header_ws.vh|./traditional_mac_stw.v|C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/stw_mac_tb.sv|
+!s90 -reportprogress|300|-work|work|-sv|-stats=none|C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/stw_mac_tb.sv|
+!i113 1
+Z11 o-work work -sv
+R6
+vmatmul_output_control
+R7
+Z12 !s110 1710967523
+!i10b 1
+!s100 YU]N3mOloBfF1RSDcfhX92
+II>5lia??Dl:_6990d>:A11
+R1
+!s105 matmul_output_control_sv_unit
+S1
+R2
+w1710279457
+8C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/matmul_output_control.sv
+FC:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/matmul_output_control.sv
+L0 9
+R3
+r1
+!s85 0
+31
+Z13 !s108 1710967523.000000
+!s107 ./header_ws.vh|C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/matmul_output_control.sv|
+!s90 -reportprogress|300|-work|work|-sv|-stats=none|C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/matmul_output_control.sv|
+!i113 1
+R11
+R6
+vpe_stw
+R8
+!i10b 1
+!s100 :KeUBI7jCXh80;ZUV`MfX1
+IFj_e@7IJ^a`:Z:hV<XKO11
+R1
+R2
+w1709689110
+8C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/pe_stw.v
+FC:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/pe_stw.v
+L0 5
+R3
+r1
+!s85 0
+31
+R10
+!s107 ./header_ws.vh|C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/pe_stw.v|
+!s90 -reportprogress|300|-work|work|-stats=none|C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/pe_stw.v|
+!i113 1
+R5
+R6
+vrecompute_module
+R8
+!i10b 1
+!s100 eNak7P6a3?ZeAjCP_1]3^2
+IzmzIYazzZNoa=S6Ke6BR?2
+R1
+R2
+w1710815641
+8C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/recompute_module.v
+FC:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/recompute_module.v
+L0 3
+R3
+r1
+!s85 0
+31
+R10
+!s107 ./header_ws.vh|C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/recompute_module.v|
+!s90 -reportprogress|300|-work|work|-stats=none|C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/recompute_module.v|
+!i113 1
+R5
+R6
+vrecompute_unit_controller_os
+Z14 !s110 1710967525
+!i10b 1
+!s100 <HOTE55MzIa6jiOjXI[::2
+IeT5`AH3AJ:1meH?Y9W1mH0
+R1
+R2
+w1710967519
+8C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/recompute_input_controller_OS.v
+FC:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/recompute_input_controller_OS.v
+L0 9
+R3
+r1
+!s85 0
+31
+Z15 !s108 1710967525.000000
+!s107 ./header_ws.vh|C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/recompute_input_controller_OS.v|
+!s90 -reportprogress|300|-work|work|-stats=none|C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/recompute_input_controller_OS.v|
+!i113 1
+R5
+R6
+vstw_matmul_tb
+R7
+!s110 1710459469
+!i10b 1
+!s100 2Q<[<ABn=nPdzAWE:CdJQ1
+IB@1[1[WNLSI05IfFJf:A80
+R1
+!s105 stw_matmul_tb_sv_unit
+S1
+R2
+R9
+8C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/stw_matmul_tb.sv
+FC:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/stw_matmul_tb.sv
+L0 3
+R3
+r1
+!s85 0
+31
+!s108 1710459468.000000
+!s107 ./header_ws.vh|C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/stw_matmul_tb.sv|
+!s90 -reportprogress|300|-work|work|-sv|-stats=none|C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/stw_matmul_tb.sv|
+!i113 1
+R11
+R6
+vsystolic_matmul_fsm
+R7
+R8
+!i10b 1
+!s100 ;b`_65B9NR?o;CNX8kVc73
+IF[Sh1o4oVELRA<;YVmcQ@0
+R1
+!s105 systolic_matmul_fsm_sv_unit
+S1
+R2
+R9
+8C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/systolic_matmul_fsm.sv
+FC:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/systolic_matmul_fsm.sv
+L0 7
+R3
+r1
+!s85 0
+31
+R10
+!s107 ./header_ws.vh|C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/systolic_matmul_fsm.sv|
+!s90 -reportprogress|300|-work|work|-sv|-stats=none|C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/systolic_matmul_fsm.sv|
+!i113 1
+R11
+R6
+vtb_recompute_module
+R7
+R0
+!i10b 1
+!s100 01gl[3BXekjVPo0ZZE;Ml1
+IW_IRKhDeDZgF;oP[Z6F?[2
+R1
+!s105 tb_recompute20module_sv_unit
+S1
+R2
+w1710879190
+8C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/tb_recompute module.sv
+FC:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/tb_recompute module.sv
+L0 4
+R3
+r1
+!s85 0
+31
+R4
+!s107 ./header_ws.vh|C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/tb_recompute module.sv|
+!s90 -reportprogress|300|-work|work|-sv|-stats=none|C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/tb_recompute module.sv|
+!i113 1
+R11
+R6
+vtb_recompute_unit_controller_os
+R7
+R14
+!i10b 1
+!s100 mdWTlBI@BI0N[[CA[0i0Y1
+IzgcW4KG1Ufm@?L4gTC6Vc1
+R1
+!s105 tb_recompute_unit_controller_os_sv_unit
+S1
+R2
+w1710709142
+8C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/tb_recompute_unit_controller_os.sv
+FC:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/tb_recompute_unit_controller_os.sv
+L0 4
+R3
+r1
+!s85 0
+31
+R15
+!s107 ./header_ws.vh|C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/tb_recompute_unit_controller_os.sv|
+!s90 -reportprogress|300|-work|work|-sv|-stats=none|C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/tb_recompute_unit_controller_os.sv|
+!i113 1
+R11
+R6
+vtraditional_mac
+R14
+!i10b 1
+!s100 WRAHk1O8TRT2zjSbf3KoS1
+IniO>U6HT40An:mzEZWCga2
+R1
+R2
+w1710815681
+8C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/traditional_mac.v
+FC:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/traditional_mac.v
+L0 3
+R3
+r1
+!s85 0
+31
+R15
+!s107 ./header_ws.vh|C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/traditional_mac.v|
+!s90 -reportprogress|300|-work|work|-stats=none|C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/traditional_mac.v|
+!i113 1
+R5
+R6
+vtraditional_mac_stw
+R14
+!i10b 1
+!s100 GR65hX61jE`j_7W[BO_Ec2
+IG_RL<<bXk2ZIHMA3S]=S?2
+R1
+R2
+Z16 w1709586350
+8C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/traditional_mac_stw.v
+FC:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/traditional_mac_stw.v
+L0 6
+R3
+r1
+!s85 0
+31
+R15
+!s107 ./header_ws.vh|C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/traditional_mac_stw.v|
+!s90 -reportprogress|300|-work|work|-stats=none|C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/traditional_mac_stw.v|
+!i113 1
+R5
+R6
+vtraditional_systolic
+R12
+!i10b 1
+!s100 <L6<D?`JQnHT53lZcEYW31
+I^EeGRQdWe;C_?;GO?:EDV1
+R1
+R2
+R16
+8C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/traditional_systolic.v
+FC:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/traditional_systolic.v
+L0 6
+R3
+r1
+!s85 0
+31
+R13
+!s107 ./traditional_mac.v|./header_ws.vh|C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/traditional_systolic.v|
+!s90 -reportprogress|300|-work|work|-stats=none|C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/traditional_systolic.v|
+!i113 1
+R5
+R6
+vtraditional_systolic_stw
+R14
+!i10b 1
+!s100 MRDU5Zh[a?fgFOgQA]OZR1
+IbgiNflU?h0@kC8oSVLkKI0
+R1
+R2
+R16
+8C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/systolic_stw.v
+FC:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/systolic_stw.v
+L0 8
+R3
+r1
+!s85 0
+31
+R15
+!s107 ./traditional_mac_stw.v|./header_ws.vh|C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/systolic_stw.v|
+!s90 -reportprogress|300|-work|work|-stats=none|C:/Users/Mia/Documents/capstone/BIST-BISR-Design/BISR/RecomputeUnitApproach/systolic_stw.v|
+!i113 1
+R5
+R6

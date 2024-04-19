@@ -13,6 +13,8 @@ module workflow_control_os
     input logic [`ROWS * `COLS * `WORD_SIZE - 1 : 0] top_matrix,
     input logic [`ROWS * `COLS * `WORD_SIZE - 1 : 0] left_matrix,
 
+    input logic matrix_start,
+
     //Output Control Signals
     output logic set_stationary,
     output logic fsm_out_select_in,
@@ -23,6 +25,7 @@ module workflow_control_os
     output logic [`ROWS * WORD_SIZE - 1: 0] curr_cycle_left_in,
     output logic [`COLS * WORD_SIZE - 1: 0] curr_cycle_top_in,
 
+    output logic sys_rst,
     //Input: Outputs from bottom of systolic
     input [`COLS * WORD_SIZE - 1: 0] bottom_out,
 
@@ -40,7 +43,7 @@ module workflow_control_os
 
     logic [`COLS:0] n_cycle; //Number of cycles feeding in input buses   
 
-    enum {INIT, WAIT_MUL, FEED_INPUT_BUSES, SET_OUTPUT_ENABLE, WAIT_PROPOGATE, OUTPUT, FINISH} state;
+    enum {RES, INIT, WAIT, FEED_INPUT_BUSES, SET_OUTPUT_ENABLE, WAIT_PROPOGATE, OUTPUT, FINISH} state;
 
     always_ff @(posedge clk) begin
         if(rst) begin
@@ -53,24 +56,64 @@ module workflow_control_os
     //Control flow for Feeding in left & top buses + Producing matrix multiplication outputs from systolic
     always_ff @(negedge clk) begin
         case(state)
-            INIT: begin
+            // RES: begin
+            //     state <= FEED_INPUT_BUSES;
+            // //     sys_rst <= 1'b1;
+            // //     set_stationary <= 1'b0;
+            // //     stat_bit_in <= 1'b0;
+            // //     fsm_out_select_in <= 1'b0;
+            // //     curr_cycle_top_in <= 0;
+            // //     curr_cycle_left_in <= 0;
+
+            // //     n_cycle <= 1;
+            // //     curr_output_cycle <= 0;
+            // //     output_col_valid <= 0;
+            // //     waitmul <= 1;
+            // //     curr_cycle_top_in <= left_matrix[ `WORD_SIZE -1 -: `WORD_SIZE];
+            // //     curr_cycle_left_in <= top_matrix[ `WORD_SIZE -1 -: `WORD_SIZE];
+            // //     if(matrix_start) begin
+            // //         sys_rst <= 1'b0;
+            // //         state <= INIT;
+            // //         //curr_cycle_top_in <= left_matrix[ `WORD_SIZE -1 -: `WORD_SIZE];
+            // //         //curr_cycle_left_in <= top_matrix[ `WORD_SIZE -1 -: `WORD_SIZE];
+            // //     end
+            //  end
+           INIT: begin
                 //Initilizaing control signals inside PE unit
+                // set_stationary <= 1'b0;
+                // stat_bit_in <= 1'b0;
+                // fsm_out_select_in <= 1'b0;
+                
+                // n_cycle <= 1;
+                // curr_output_cycle <= 0;
+                // output_col_valid <= 0;
+                // waitmul <= 1;
+
+                // //Initilizaing left & top in bus
+                // curr_cycle_top_in <= left_matrix[ `WORD_SIZE -1 -: `WORD_SIZE];
+                // curr_cycle_left_in <= top_matrix[ `WORD_SIZE -1 -: `WORD_SIZE];
+                
+                // state <= FEED_INPUT_BUSES;
+                sys_rst <= 1'b1;
                 set_stationary <= 1'b0;
                 stat_bit_in <= 1'b0;
                 fsm_out_select_in <= 1'b0;
-                
+                curr_cycle_top_in <= 0;
+                curr_cycle_left_in <= 0;
+
                 n_cycle <= 1;
                 curr_output_cycle <= 0;
                 output_col_valid <= 0;
                 waitmul <= 1;
-
-                //Initilizaing left & top in bus
                 curr_cycle_top_in <= left_matrix[ `WORD_SIZE -1 -: `WORD_SIZE];
                 curr_cycle_left_in <= top_matrix[ `WORD_SIZE -1 -: `WORD_SIZE];
-                
-                state <= FEED_INPUT_BUSES;
+                if(matrix_start) begin
+                    sys_rst <= 1'b0;
+                    state <= FEED_INPUT_BUSES;
+                    curr_cycle_top_in <= left_matrix[ `WORD_SIZE -1 -: `WORD_SIZE];
+                    curr_cycle_left_in <= top_matrix[ `WORD_SIZE -1 -: `WORD_SIZE];
+                end
             end
-            
             FEED_INPUT_BUSES: begin
                 //Feeding left & top in bus at each clock cycle
                 if(n_cycle < `COLS * 2)begin 

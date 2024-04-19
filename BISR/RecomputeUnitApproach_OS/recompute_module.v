@@ -9,7 +9,6 @@ module recompute_module
 )(
     clk,
     rst,
-
     ru_en,
     ru_top_inputs,
     ru_left_inputs,

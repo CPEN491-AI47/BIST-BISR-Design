@@ -1,14 +1,13 @@
 //pe_stw is a traditional_mac_stw with bypassing option for self-repair
 
 `include "./header.vh"   //Enable header_ws for weight-stationary tb
-
 module pe_stw
 #(
     parameter WORD_SIZE = 16
 )(
     clk,
     rst,
-    
+    sys_rst,
     //Control Signals - Used for matmul op + setting stationary operand
     fsm_op2_select_in,  //For set stationary operands: set to 1, For matmul: set to 0
     fsm_out_select_in,  //Output accumulated sum (for IS/WS) or top_in (for OS)
@@ -41,6 +40,7 @@ module pe_stw
 
     input clk;
     input rst;
+    input sys_rst;
     input fsm_op2_select_in;
     input fsm_out_select_in;
     input stat_bit_in;
@@ -59,20 +59,34 @@ module pe_stw
         output STW_result_out;
     `endif
 
-    input [WORD_SIZE - 1: 0] left_in;
-    input [WORD_SIZE - 1: 0] top_in;
+    input signed [WORD_SIZE - 1: 0] left_in;
+    input signed [WORD_SIZE - 1: 0] top_in;
 
-    output [WORD_SIZE - 1: 0] right_out;
-    output [WORD_SIZE - 1: 0] bottom_out;  //bottom_out of this pe
+    output reg signed [WORD_SIZE - 1: 0] right_out;
+    output reg signed [WORD_SIZE - 1: 0] bottom_out;  //bottom_out of this pe
+	
+    wire signed [WORD_SIZE - 1: 0] bottom_out_mac;   //bottom_out of tradition_mac_stw - only selected if !bypass_en
+    wire signed [WORD_SIZE - 1: 0] right_out_mac;
+    // assign bottom_out = !STW_result_out ? top_in : bottom_out_mac;   //bypass if STW detected error (result_out = 0)
+    // assign right_out = !STW_result_out ? left_in : right_out_mac;
+    wire sys_reset;
+    assign sys_reset = sys_rst;
 
-    wire [WORD_SIZE - 1: 0] bottom_out_mac;   //bottom_out of tradition_mac_stw - only selected if !bypass_en
-    wire [WORD_SIZE - 1: 0] right_out_mac;
-    assign bottom_out = !STW_result_out ? top_in : bottom_out_mac;   //bypass if STW detected error (result_out = 0)
-    assign right_out = !STW_result_out ? left_in : right_out_mac;
-
-    traditional_mac_stw mac_stw(
+    always @(*) begin
+        if(!STW_result_out && clk)begin
+            bottom_out = top_in;
+            right_out = left_in;
+        end 
+        else begin
+            bottom_out = bottom_out_mac;
+            right_out = right_out_mac;
+        end
+    end 
+    traditional_mac_stw #(WORD_SIZE) mac_stw(
         .clk(clk),
         .rst(rst),
+	    .sys_rst(sys_reset),
+
         .fsm_op2_select_in(fsm_op2_select_in),
         .fsm_out_select_in(fsm_out_select_in),
         .stat_bit_in(stat_bit_in),
